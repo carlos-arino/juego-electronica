@@ -90,7 +90,7 @@
       puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'b' }]
     },
     motor: {
-      nombre: 'Motor', w: 1, h: 1, carga: true, valor: 12, unidad: 'Ω',
+      nombre: 'Motor', w: 1, h: 1, carga: true, valor: 12, unidad: 'Ω', par: { L: 1e-3 },
       puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'b' }]
     },
     bobina: {

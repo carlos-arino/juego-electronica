@@ -70,5 +70,15 @@ probar('lado alto sin R_EB (base al aire)', 'ladoalto', null, tab => { const r =
 probar('comparador con las entradas cambiadas', 'comparador', null, tab => tab.espejo(tab.piezas.find(p => p.tipo === 'ao').id), falla);
 probar('Schmitt sin histéresis (R2 quitada)', 'schmitt', null, quitar('resistencia', p => p.valor === 30e3), falla);
 probar('astable con C = 47 nF (periodo distinto)', 'astable', null, tab => { tab.piezas.find(p => p.tipo === 'condensador').valor = 47e-9; }, falla);
+probar('motor sin diodo volante', 'motor', null, quitar('diodo'), (c, t) => /ruptura/.test(t));
+// Niveles de diseño: un valor normalizado (E12) debe aprobar; uno muy alejado, no
+const aprueba = id => c => c >= (nivel(id).umbral || 0.98);
+const valorR = (v, cond) => tab => { tab.piezas.find(p => p.tipo === 'resistencia' && (!cond || cond(p))).valor = v; };
+probar('LED con 330 Ω (E12)', 'led', null, valorR(330), aprueba('led'));
+probar('LED con 270 Ω (E12)', 'led', null, valorR(270), aprueba('led'));
+probar('LED con 1 kΩ', 'led', null, valorR(1e3), c => !aprueba('led')(c));
+probar('fuente de corriente con R_E = 220 Ω (E12)', 'fuentecorriente', null, valorR(220, p => p.valor === 200), aprueba('fuentecorriente'));
+probar('fuente de corriente con R_E = 180 Ω (E12)', 'fuentecorriente', null, valorR(180, p => p.valor === 200), aprueba('fuentecorriente'));
+probar('fuente de corriente con R_E = 330 Ω', 'fuentecorriente', null, valorR(330, p => p.valor === 200), c => !aprueba('fuentecorriente')(c));
 console.log(fallos ? fallos + ' comprobaciones fallan' : 'Todas las comprobaciones OK');
 process.exitCode = fallos ? 1 : 0;

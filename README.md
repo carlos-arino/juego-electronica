@@ -31,13 +31,13 @@ El progreso (estrellas) y el circuito de cada nivel se guardan en el navegador d
 | **Tema 3** | **El transistor en continua** | |
 | 3.1 | Corte, activa y saturación | V_CE(v₁) en emisor común |
 | 3.2 | Seguidor de emisor (entrada de 1 mA como máximo) | vₒ = v₁ − 0,7 V |
-| 3.3 | Regulador lineal | vₒ = V_Z − 0,7 = 5 V |
-| 3.4 | Fuente de corriente con Zener | I_LED = 10 mA |
+| 3.3 | Regulador lineal (Zener comercial de 5,6 V) | vₒ = V_Z − 0,7 = 4,9 V |
+| 3.4 | Fuente de corriente con Zener (diseño, ±12 %) | I_LED = 10 mA |
 | 3.5 | MOSFET: característica de transferencia | V_DS(v₁) |
 | **Tema 4** | **El transistor en conmutación** | |
-| 4.1 | Encender un LED desde el µC | I_LED = 10 mA |
+| 4.1 | Encender un LED desde el µC (diseño, ±12 %) | I_LED = 10 mA |
 | 4.2 | Relé con un NPN (diodo volante) | I_bobina ≈ 49 mA |
-| 4.3 | Motor con un MOSFET (nivel lógico frente a estándar) | I_motor ≈ 1 A |
+| 4.3 | Motor inductivo con un MOSFET (nivel lógico frente a estándar, diodo volante) | I_motor ≈ 1 A |
 | 4.4 | Lado alto con PNP y excitador NPN | I_lámpara ≈ 0,5 A |
 | **Tema 6** | **El AO: aplicaciones lineales** | |
 | 6.1–6.11 | Seguidor, inversor, no inversor, sumadores, restador, acondicionamiento, convertidor A/D, instrumentación, integrador | |
@@ -52,9 +52,10 @@ El progreso (estrellas) y el circuito de cada nivel se guardan en el navegador d
 ## Mecánica
 
 - **Tablero**: los conectores de entrada están a la izquierda: generador de señal, salida digital del µC o secundario flotante de un transformador. El conector de salida está a la derecha. Junto a ellos hay miniosciloscopios con la forma de onda de cada entrada y el objetivo superpuesto a la salida real.
-- **Piezas**: cables rectos y en L, nudos en T y en cruz, cruce sin unión, resistencia, condensador, tierra, fuente de un terminal, diodo, Zener, LED, NPN, PNP, MOSFET N y P, AO, y como cargas lámpara, motor y bobina de relé.
+- **Piezas**: cables rectos y en L, nudos en T y en cruz, cruce sin unión, resistencia, condensador, tierra, fuente de un terminal, diodo, Zener, LED, NPN, PNP, MOSFET N y P, AO, y como cargas lámpara, motor (inductivo) y bobina de relé.
 - **Estado de los dispositivos**: cada diodo o transistor muestra en el tablero su estado en el instante elegido (ON, OFF, Z, CORTE, ACT, SAT, ÓHM, RUPT). Al pasar el ratón se ven sus tensiones, corrientes y potencia. Los LED y las lámparas brillan según su corriente.
-- **Objetivo y puntuación**: coincidencia = `1 − error RMS / referencia`, y el nivel se supera con un 98 %. En el astable se compara el periodo.
+- **Objetivo y puntuación**: coincidencia = `1 − error RMS / referencia`, y el nivel se supera con un 98 %. En los niveles de diseño (4.1 y 3.4) basta con un 88 %, para que valga el valor E12 más próximo al calculado; el enunciado da la tolerancia y el medidor marca el umbral. En el astable se compara el periodo.
+- **Valores de los componentes**: se escriben con su valor exacto (10k, 4,7k, 100n) o se ajustan con + / − o ↑ / ↓ por la serie E24, y con Mayús + ↑ / ↓ en la segunda cifra significativa (para valores de cálculo como 40 kΩ). El panel indica si el valor está normalizado y cuáles son los comerciales más próximos. Todas las soluciones de referencia usan valores E24 y Zener comerciales.
 - **Estrellas**: ★ nivel superado; ★★ sin usar más componentes que la solución de referencia; ★★★ además sin avisos.
 - **Diagnóstico**: avisa de realimentación positiva, bucle abierto y saturación de los AO. También de transistores que no saturan en conmutación, bases o puertas al aire y extremos de cable sueltos. Son errores, que impiden superar el nivel, la ruptura (V_CE > V_CEO, típica al cortar una bobina sin diodo volante), la potencia excesiva de un Zener, un LED quemado, la corriente excesiva pedida al µC y los cortocircuitos.
 

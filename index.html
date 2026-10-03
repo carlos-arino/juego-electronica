@@ -55,7 +55,7 @@
       <div class="medidor" id="medidor">
         <div class="medidor-num"><span id="coincidencia">0</span><small>%</small></div>
         <div class="medidor-lbl">coincidencia</div>
-        <div class="medidor-barra"><div id="coincidenciaBarra"></div></div>
+        <div class="medidor-barra"><div id="coincidenciaBarra"></div><span class="umbral" id="umbralMarca"></span></div>
       </div>
     </div>
     <div class="tablero-wrap" id="tableroWrap">
@@ -118,7 +118,7 @@
   <div class="modal-caja">
     <button class="cerrar" data-cerrar aria-label="Cerrar">×</button>
     <h2>Cómo se juega</h2>
-    <p>Construye un circuito entre las <b>entradas</b> (izquierda) y la <b>salida</b> (derecha) para que la salida real <span class="sw sw-real"></span> coincida con la salida objetivo <span class="sw sw-obj"></span>. El nivel se supera con un 98 % de coincidencia.</p>
+    <p>Construye un circuito entre las <b>entradas</b> (izquierda) y la <b>salida</b> (derecha) para que la salida real <span class="sw sw-real"></span> coincida con la salida objetivo <span class="sw sw-obj"></span>. El nivel se supera con un 98 % de coincidencia; en los niveles de diseño, en los que se usan valores normalizados, basta con quedar dentro de la tolerancia que indica el enunciado. La marca del medidor señala el umbral.</p>
     <div class="ayuda-cols">
       <div>
         <h4>Ratón</h4>
@@ -136,7 +136,7 @@
         <ul>
           <li><kbd>R</kbd> girar · <kbd>M</kbd> voltear (+ y − del AO, terminales del transistor)</li>
           <li><kbd>Supr</kbd> borrar la pieza seleccionada</li>
-          <li><kbd>+</kbd>/<kbd>−</kbd> siguiente valor normalizado (E12)</li>
+          <li><kbd>+</kbd>/<kbd>−</kbd> o <kbd>↑</kbd>/<kbd>↓</kbd> valor normalizado (E24) · <kbd>Mayús</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> ajuste fino · o escribe el valor exacto</li>
           <li><kbd>V</kbd> seleccionar · <kbd>W</kbd> lápiz · <kbd>E</kbd> borrar · <kbd>P</kbd> sonda</li>
           <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> deshacer · <kbd>Espacio</kbd> animar · <kbd>Esc</kbd> soltar herramienta</li>
         </ul>

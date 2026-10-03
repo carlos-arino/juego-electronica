@@ -162,6 +162,11 @@ kbd {
 .propiedades input.mal { border-color: var(--bad); background: var(--bad-soft); }
 .propiedades .nota { font-size: 11.5px; color: var(--muted); margin: 0 0 8px; }
 .propiedades .botones { display: flex; gap: 6px; flex-wrap: wrap; }
+.propiedades .pasos { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; font-size: 11.5px; color: var(--muted); }
+.propiedades .pasos span:not(:first-child) { margin-left: 8px; }
+.propiedades .pasos .btn { padding: 2px 9px; font-size: 14px; }
+.norm-ok { color: var(--ok); font-weight: 600; }
+.norm-no { color: var(--warn); font-weight: 600; }
 .propiedades .botones .btn { padding: 5px 8px; font-size: 12.5px; }
 
 /* ---------- Centro ---------- */
@@ -179,7 +184,8 @@ kbd {
 .medidor-num { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 .medidor-num small { font-size: 15px; font-weight: 600; margin-left: 2px; color: var(--muted); }
 .medidor-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.medidor-barra { height: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px; margin-top: 5px; overflow: hidden; }
+.medidor-barra { position: relative; height: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px; margin-top: 5px; overflow: hidden; }
+.medidor-barra .umbral { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); opacity: .55; }
 .medidor-barra div { height: 100%; width: 0; background: var(--warn); transition: width .25s, background .25s; }
 .medidor.ganado .medidor-num { color: var(--ok); }
 .medidor.ganado .medidor-barra div { background: var(--ok); }

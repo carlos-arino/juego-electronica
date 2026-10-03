@@ -6,7 +6,8 @@
   const P = window.Piezas, S = window.Simulador, N = window.Niveles, D = window.Dibujo, Gr = window.Graficas;
   const T = D.T;
   const { cols: COLS, filas: FILAS } = N.TABLERO;
-  const UMBRAL = 0.98;
+  // Coincidencia necesaria: 98 % salvo en los niveles de diseño con tolerancia
+  const umbral = () => E.nivel.umbral || 0.98;
   const NIVELES = N.NIVELES.concat([N.LIBRE]);
   const OPS_COMPONENTE = ['ao', 'R', 'C', 'V'];
 
@@ -224,11 +225,13 @@
   /* ---------- Victoria ---------- */
   function comprobarVictoria() {
     const c = E.punt.coincidencia;
-    const ganado = E.res.ok && !E.res.errores.length && c >= UMBRAL;
+    const ganado = E.res.ok && !E.res.errores.length && c >= umbral();
     $('medidor').classList.toggle('ganado', ganado);
     const pc = Math.round(c * 1000) / 10;
     $('coincidencia').textContent = pc >= 100 ? '100' : fmt(pc, 1);
     $('coincidenciaBarra').style.width = (100 * c).toFixed(1) + '%';
+    $('umbralMarca').style.left = (100 * umbral()).toFixed(1) + '%';
+    $('medidor').title = 'Se supera con un ' + fmt(100 * umbral(), 0) + ' % de coincidencia';
     if (ganado && E.interaccion && !E.nivel.libre) {
       const comp = E.tab.piezas.filter(esComponente).length;
       const limpio = !avisosReales().length && !E.circ.sueltos.length;
@@ -768,20 +771,40 @@
     if (E.nivel.libre && E.nivel.errorExpr) items.push(['error', E.nivel.errorExpr]);
     const usaAO = E.nivel.piezas.includes('ao');
     if (usaAO && !E.tab.piezas.some(p => p.tipo === 'ao') && !E.nivel.libre) items.push(['info', 'Todavía no hay ningún AO en el tablero.']);
-    if (r.ok && E.punt.coincidencia >= UMBRAL && !r.errores.length) items.unshift(['ok', '¡Objetivo conseguido! La salida coincide con la función pedida.']);
+    if (r.ok && E.punt.coincidencia >= umbral() && !r.errores.length) items.unshift(['ok', '¡Objetivo conseguido! La salida coincide con la función pedida.']);
     else if (r.ok && !items.some(it => it[0] !== 'info')) items.push(['info', 'Sin problemas eléctricos. La salida todavía no coincide con el objetivo: compara las dos curvas.']);
     ul.innerHTML = items.map(([c, t, id]) => `<li class="${c}"${id ? ` data-id="${id}" style="cursor:pointer" title="Seleccionar la pieza"` : ''}>${esc(t)}</li>`).join('');
     actualizarPropiedades();
   }
 
   /* ---------- Propiedades de la pieza seleccionada ---------- */
-  const E12 = [1, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
-  function pasoE12(v, dir) {
-    const cands = [];
-    for (let d = -13; d <= 7; d++) for (const m of E12) cands.push(m * Math.pow(10, d));
-    if (dir > 0) return cands.find(c => c > v * 1.0001) || v;
-    for (let i = cands.length - 1; i >= 0; i--) if (cands[i] < v * 0.9999) return cands[i];
+  /* Valores normalizados (serie E24, que incluye la E12) y ajuste fino
+     en la segunda cifra significativa, para llegar a valores de cálculo
+     como 40 kΩ u 8 kΩ. */
+  const E24 = [1, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2, 2.2, 2.4, 2.7, 3, 3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1];
+  const SERIE = [];
+  for (let d = -13; d <= 7; d++) for (const m of E24) SERIE.push(+(m * Math.pow(10, d)).toPrecision(3));
+  function pasoE24(v, dir) {
+    if (dir > 0) return SERIE.find(c => c > v * 1.0001) || v;
+    for (let i = SERIE.length - 1; i >= 0; i--) if (SERIE[i] < v * 0.9999) return SERIE[i];
     return v;
+  }
+  function pasoFino(v, dir) {
+    let d = Math.floor(Math.log10(v) + 1e-9);
+    let m = Math.round(v / Math.pow(10, d) * 10) / 10 + 0.1 * dir;
+    if (m >= 9.95) { m = 1; d++; } else if (m < 0.95) { m = 9.9; d--; }
+    return +(m * Math.pow(10, d)).toPrecision(3);
+  }
+  const esNormalizado = (v) => SERIE.some(c => Math.abs(c - v) <= v * 1e-6);
+  function infoNormalizado(v, unidad) {
+    if (esNormalizado(v)) return '<span class="norm-ok">✓ Valor normalizado (E24)</span>';
+    return `<span class="norm-no">Valor no normalizado.</span> Comerciales más próximos: ${P.formatearValor(pasoE24(v, -1), unidad)} y ${P.formatearValor(pasoE24(v, 1), unidad)}.`;
+  }
+  function cambiarValor(p, nuevo) {
+    if (!(nuevo > 0) || nuevo === p.valor) return;
+    empujar(instantanea());
+    p.valor = nuevo;
+    cambio(true);
   }
 
   // Parámetros editables en el laboratorio libre
@@ -806,8 +829,12 @@
       const txt = p.tipo === 'fuente' ? String(p.valor).replace('.', ',') : P.formatearValor(p.valor, t.unidad).replace(' ', '');
       h += `<div class="fila"><input type="text" id="propValor" value="${esc(txt)}" spellcheck="false" aria-label="Valor"></div>`;
       h += p.tipo === 'fuente' ? '<p class="nota">En voltios, p. ej. 5 o −2,5.</p>'
-        : p.tipo === 'condensador' ? '<p class="nota">Escribe el valor y pulsa Intro (100n, 1u, 47n). <kbd>+</kbd>/<kbd>−</kbd>: serie E12.</p>'
-        : `<p class="nota">Escribe el valor y pulsa Intro (10k, 4,7k, 220, 1M).${p.tipo === 'resistencia' ? ' <kbd>+</kbd>/<kbd>−</kbd>: serie E12.' : ''}</p>`;
+        : `<p class="nota">Escribe el valor exacto y pulsa Intro (${p.tipo === 'condensador' ? '100n, 1u, 47n' : '10k, 4,7k, 220, 1M'}).</p>`;
+      if (p.tipo === 'resistencia' || p.tipo === 'condensador') {
+        h += '<div class="pasos"><span>E24</span><button class="btn" data-paso="e-1" title="Valor normalizado anterior (− o ↓)">−</button><button class="btn" data-paso="e1" title="Valor normalizado siguiente (+ o ↑)">+</button>' +
+          '<span>fino</span><button class="btn" data-paso="f-1" title="Bajar la segunda cifra (Mayús + ↓)">−</button><button class="btn" data-paso="f1" title="Subir la segunda cifra (Mayús + ↑)">+</button></div>';
+        h += `<p class="nota">${infoNormalizado(p.valor, t.unidad)}</p>`;
+      }
     } else if (p.tipo === 'fuente') {
       h += `<p class="nota">Fuente de ${fmt(p.valor, 1)} V respecto a tierra (valor fijo en este nivel).</p>`;
     } else if (t.carga) {
@@ -871,6 +898,13 @@
   }
 
   $('propiedades').addEventListener('click', ev => {
+    const ps = ev.target.closest('[data-paso]');
+    if (ps && E.sel) {
+      const p = E.tab.piezas.find(q => q.id === E.sel);
+      const dir = +ps.dataset.paso.slice(1);
+      if (p) cambiarValor(p, ps.dataset.paso[0] === 'e' ? pasoE24(p.valor, dir) : pasoFino(p.valor, dir));
+      return;
+    }
     const b = ev.target.closest('[data-acc]');
     if (!b || !E.sel) return;
     accionSeleccion(b.dataset.acc);
@@ -1088,10 +1122,13 @@
       case 'p': elegirHerramienta('sonda'); break;
       case ' ': ev.preventDefault(); alternarAnim(); break;
       case '+': case '-': case '−':
+        if (sel && (sel.tipo === 'resistencia' || sel.tipo === 'condensador')) cambiarValor(sel, pasoE24(sel.valor, k === '+' ? 1 : -1));
+        break;
+      case 'arrowup': case 'arrowdown':
         if (sel && (sel.tipo === 'resistencia' || sel.tipo === 'condensador')) {
-          empujar(instantanea());
-          sel.valor = pasoE12(sel.valor, k === '+' ? 1 : -1);
-          cambio(true);
+          ev.preventDefault();
+          const dir = k === 'ArrowUp' ? 1 : -1;
+          cambiarValor(sel, ev.shiftKey ? pasoFino(sel.valor, dir) : pasoE24(sel.valor, dir));
         }
         break;
       case 'arrowleft': ponerCursor(E.cursor - 5); break;

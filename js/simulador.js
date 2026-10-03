@@ -198,8 +198,8 @@
     for (const p of piezas) {
       const t = p.tipo, nd = (e) => nudo(p.id + ':' + e);
       if (t === 'resistencia') R.push({ a: nd('a'), b: nd('b'), R: Math.max(p.valor || 1, 1e-3), id: p.id });
-      else if (t === 'lampara' || t === 'motor') R.push({ a: nd('a'), b: nd('b'), R: Math.max(p.valor || 1, 1e-3), id: p.id, carga: t });
-      else if (t === 'bobina') {
+      else if (t === 'lampara') R.push({ a: nd('a'), b: nd('b'), R: Math.max(p.valor || 1, 1e-3), id: p.id, carga: t });
+      else if (t === 'bobina' || t === 'motor') {
         const m = N++;
         R.push({ a: nd('a'), b: m, R: Math.max(p.valor || 1, 1e-3), id: p.id, carga: t });
         L.push({ a: m, b: nd('b'), L: Math.max(P.parDe(p).L || 1e-3, 1e-9), id: p.id });
@@ -691,7 +691,7 @@
       const imax = rr.i.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
       if (rr.est.some(e => e === 3)) {
         const vmax = /mos/.test(d.tipo) ? 'V_DS supera V_DSS = ' + q.vdss : 'V_CE supera V_CEO = ' + q.vceo;
-        res.errores.push({ txt: `${d.nombre} entra en ruptura (${vmax} V) y se destruiría.` + (hayBobina ? ' Al cortar la corriente de la bobina aparece una sobretensión: falta el diodo de libre circulación.' : ''), id: d.id });
+        res.errores.push({ txt: `${d.nombre} entra en ruptura (${vmax} V) y se destruiría.` + (hayBobina ? ' Al cortar la corriente de una carga inductiva (bobina, motor) aparece una sobretensión: falta el diodo de libre circulación.' : ''), id: d.id });
       }
       if (q.pmax && pmax > q.pmax) res.errores.push({ txt: `${d.nombre} disipa ${(pmax).toFixed(2).replace('.', ',')} W y su máximo es ${String(q.pmax).replace('.', ',')} W: se destruiría.`, id: d.id });
       if (q.imax && imax > q.imax) res.errores.push({ txt: `Por ${d.nombre} circularían ${(imax * 1e3).toFixed(0)} mA y su máximo es ${(q.imax * 1e3).toFixed(0)} mA: se quemaría.`, id: d.id });
