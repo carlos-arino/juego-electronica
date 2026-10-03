@@ -178,6 +178,7 @@
       if (p.m) o.m = true;
       if (p.valor !== undefined) o.valor = p.valor;
       if (p.k !== undefined) o.k = p.k;
+      if (p.par) o.par = p.par;
       if (p.fija) o.fija = true;
       return o;
     });

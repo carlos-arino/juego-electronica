@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Circuitos con AO — interfaz del juego.
+   Circuitos de Electrónica — interfaz del juego.
    ========================================================================== */
 (function () {
   'use strict';
@@ -7,12 +7,17 @@
   const T = D.T;
   const { cols: COLS, filas: FILAS } = N.TABLERO;
   const UMBRAL = 0.98;
-  const COMPONENTES = ['ao', 'resistencia', 'condensador', 'fuente'];
   const NIVELES = N.NIVELES.concat([N.LIBRE]);
+  const OPS_COMPONENTE = ['ao', 'R', 'C', 'V'];
 
   const $ = (id) => document.getElementById(id);
   const fmt = (v, dec = 2) => (Math.abs(v) < 0.5 * Math.pow(10, -dec) ? 0 : v).toFixed(dec).replace('.', ',').replace('-', '−');
   const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const sinEtiquetas = (s) => String(s).replace(/<sub>(.*?)<\/sub>/g, '$1').replace(/<[^>]+>/g, '');
+
+  /* Componentes que cuentan para las estrellas: todo lo que no es cable,
+     conector ni carga dada por el enunciado. */
+  const esComponente = (p) => !p.fija && !P.TIPOS[p.tipo].cable && !P.TIPOS[p.tipo].carga && p.tipo !== 'tierra';
 
   /* ---------- Almacenamiento (opcional) ---------- */
   const ALM = {
@@ -37,18 +42,26 @@
   };
 
   const svg = $('tablero');
+  const medidaCorriente = () => E.nivel.medida && E.nivel.medida.tipo === 'i';
+  const unidadSalida = () => medidaCorriente() ? 'mA' : 'V';
+  const nombreSalida = () => medidaCorriente() ? E.nivel.medida.nombre : 'v<sub>o</sub>';
 
   /* ---------- Paleta ---------- */
   function herramientasNivel() {
-    const nv = E.nivel;
-    const lista = [];
-    for (const t of nv.piezas) {
-      if (t === 'fuente') {
-        if (Array.isArray(nv.fuentes)) for (const v of nv.fuentes) lista.push({ clave: 'p:fuente:' + v, tipo: 'fuente', valor: v });
-        else lista.push({ clave: 'p:fuente', tipo: 'fuente', valor: 5 });
-      } else lista.push({ clave: 'p:' + t, tipo: t });
+    return N.paleta(E.nivel).map(e => Object.assign(e, { clave: 'p:' + e.clave }));
+  }
+
+  function textoParametros(tipo, par) {
+    const q = Object.assign({}, P.TIPOS[tipo].par || {}, par || {});
+    const v = (x) => String(+(+x).toPrecision(4)).replace('.', ',');
+    switch (tipo) {
+      case 'diodo': case 'led': return `V<sub>γ</sub> = ${v(q.vg)} V`;
+      case 'zener': return `V<sub>Z</sub> = ${v(q.vz)} V · V<sub>γ</sub> = ${v(q.vg)} V` + (q.pmax ? ` · P<sub>máx</sub> = ${v(q.pmax)} W` : '');
+      case 'npn': case 'pnp': return `β = ${v(q.beta)} · V<sub>BE</sub> = ${v(q.vbe)} V · V<sub>CE(sat)</sub> = ${v(q.vcesat)} V · V<sub>CEO</sub> = ${v(q.vceo)} V`;
+      case 'nmos': case 'pmos': return `V<sub>TH</sub> = ${v(q.vth)} V · k = ${v(q.k * 1e3)} mA/V² · R<sub>DS(on)</sub> = ${v(q.ron)} Ω · V<sub>DSS</sub> = ${v(q.vdss)} V`;
+      case 'bobina': return `L = ${P.formatearValor(q.L, 'H')}`;
+      default: return '';
     }
-    return lista;
   }
 
   function construirPaleta() {
@@ -60,11 +73,12 @@
       `<button class="item" data-herr="${k}" title="${l} (${tecla})">${D.iconoHerramienta(k)}<span class="lbl">${l}</span><span class="tecla">${tecla}</span></button>`).join('');
     $('piezas').innerHTML = herramientasNivel().map((h, i) => {
       const t = P.TIPOS[h.tipo];
-      let lbl = t.nombre;
-      if (h.tipo === 'fuente') lbl = 'Fuente ' + (h.valor > 0 ? '+' : h.valor < 0 ? '−' : '') + Math.abs(h.valor) + ' V';
+      let lbl = h.etiqueta || t.nombre;
+      if (h.tipo === 'fuente') lbl = h.libre ? 'Fuente' : 'Fuente ' + (h.valor > 0 ? '+' : h.valor < 0 ? '−' : '') + String(Math.abs(h.valor)).replace('.', ',') + ' V';
       if (h.tipo === 'ao') lbl = 'AO';
       const tecla = i < 9 ? `<span class="tecla">${i + 1}</span>` : '';
-      return `<button class="item${h.tipo === 'ao' ? ' ancho' : ''}" data-herr="${h.clave}" title="${t.nombre}">${D.icono(h.tipo, h.valor)}<span class="lbl">${lbl}</span>${tecla}</button>`;
+      const tip = sinEtiquetas((h.etiqueta || t.nombre) + (textoParametros(h.tipo, h.par) ? ' · ' + textoParametros(h.tipo, h.par) : ''));
+      return `<button class="item${h.tipo === 'ao' ? ' ancho' : ''}" data-herr="${h.clave}" title="${esc(tip)}">${D.icono(h.tipo, h.valor)}<span class="lbl">${lbl}</span>${tecla}</button>`;
     }).join('');
     marcarHerramienta();
   }
@@ -83,9 +97,7 @@
 
   function herrPieza() {
     if (!E.herr.startsWith('p:')) return null;
-    const [, tipo, v] = E.herr.split(':');
-    const t = P.TIPOS[tipo];
-    return { tipo, valor: v !== undefined ? parseFloat(v) : t.valor };
+    return herramientasNivel().find(h => h.clave === E.herr) || null;
   }
 
   /* ---------- Carga de niveles ---------- */
@@ -93,13 +105,14 @@
     pararAnim();
     E.idx = (idx + NIVELES.length) % NIVELES.length;
     E.nivel = NIVELES[E.idx];
-    ALM.escribir('nivel', E.nivel.id);
-    if (E.nivel.libre) {
-      E.nivel.config = ALM.leer('libreConfig', E.nivel.config);
-      N.prepararLibre(E.nivel);
+    const nv = E.nivel;
+    ALM.escribir('nivel', nv.id);
+    if (nv.libre) {
+      nv.config = ALM.leer('libreConfig', nv.config);
+      N.prepararLibre(nv);
     }
     E.tab = new window.Tablero(COLS, FILAS);
-    const guardado = ALM.leer('circuito.' + E.nivel.id, null);
+    const guardado = ALM.leer('circuito.' + nv.id, null);
     let cargado = false;
     if (guardado && Array.isArray(guardado)) {
       try { E.tab.cargar(guardado.filter(p => P.TIPOS[p.tipo])); cargado = true; } catch (e) { cargado = false; }
@@ -107,24 +120,28 @@
     if (!cargado) E.tab = new window.Tablero(COLS, FILAS);
     // Los conectores fijos siempre desde el nivel
     E.tab.cargar(E.tab.serializar().filter(p => !p.fija));
-    for (const c of N.conectores(E.nivel)) {
+    for (const c of N.conectores(nv)) {
       for (const [x, y] of P.casillas(c)) { const q = E.tab.piezaEn(x, y); if (q) E.tab.quitar(q.id); }
       E.tab.colocar(c);
     }
+    if (!cargado && nv.inicial) N.aplicarSolucion(E.tab, nv.inicial, nv);
     E.hist = []; E.rehacer = []; E.sondas = []; E.sel = null;
     E.ayuda = false; E.ganado = false; E.interaccion = false; E.mejorSesion = 0; E.cursor = 0;
-    E.par = E.nivel.solucion ? E.nivel.solucion.filter(c => ['ao', 'R', 'C', 'V'].includes(c[0])).length : Infinity;
+    E.par = nv.solucion ? nv.solucion.filter(c => OPS_COMPONENTE.includes(c[0]) || (c[0] === 'p' && !P.TIPOS[c[1]].carga)).length : Infinity;
 
-    $('nivelNum').textContent = E.nivel.libre ? '∞' : (E.idx + 1);
-    $('nivelTitulo').textContent = E.nivel.titulo;
-    $('nivelConcepto').textContent = E.nivel.concepto;
-    $('enunciado').innerHTML = E.nivel.enunciado;
+    $('nivelNum').textContent = nv.numero;
+    $('nivelTitulo').textContent = nv.titulo;
+    $('nivelConcepto').innerHTML = nv.concepto;
+    $('marcaSub').textContent = nv.libre ? 'Electrónica · Laboratorio libre' : `Electrónica · Tema ${nv.tema.num} · ${nv.tema.nombre}`;
+    $('enunciado').innerHTML = nv.enunciado;
     $('pista').hidden = true;
-    $('pista').innerHTML = E.nivel.pista ? '<b>Pista.</b> ' + E.nivel.pista : '';
-    $('btnPista').disabled = !E.nivel.pista;
-    $('btnSolucion').disabled = !E.nivel.solucion;
-    $('libreConfig').hidden = !E.nivel.libre;
-    if (E.nivel.libre) construirLibre();
+    $('pista').innerHTML = nv.pista ? '<b>Pista.</b> ' + nv.pista : '';
+    $('btnPista').disabled = !nv.pista;
+    $('btnSolucion').disabled = !nv.solucion;
+    $('libreConfig').hidden = !nv.libre;
+    $('tarjetaEntradas').hidden = !nv.entradas.length;
+    $('tituloSalida').textContent = medidaCorriente() ? 'Corriente' : 'Salida';
+    if (nv.libre) construirLibre();
     actualizarEstrellasCabecera();
     if (!herramientasNivel().some(h => h.clave === E.herr) && E.herr.startsWith('p:')) E.herr = 'lapiz';
     construirPaleta();
@@ -135,7 +152,9 @@
 
   function textoEntradas() {
     const nv = E.nivel;
-    let h = nv.entradas.map(e => `<b>${e.nombre}</b>: ${e.texto}` + (e.Rs ? ` · resistencia interna ${P.formatearValor(e.Rs, 'Ω')}` : '')).join('<br>');
+    let h = nv.entradas.map(e => `<b>${e.nombre}</b>: ${e.texto}` +
+      (e.Rs ? ` · resistencia interna ${P.formatearValor(e.Rs, 'Ω')}` : '') +
+      (e.imax ? ` · máximo ${fmt(e.imax * 1e3, 0)} mA` : '')).join('<br>');
     if (nv.RL) h += `<br><b>Carga</b> en la salida: R<sub>L</sub> = ${P.formatearValor(nv.RL, 'Ω')}`;
     $('textoEntradas').innerHTML = h;
     $('objetivoFormula').innerHTML = '<span class="etq">Objetivo</span>' + nv.objetivoHTML;
@@ -175,7 +194,9 @@
     E.circ = S.construir(E.tab.piezas, nv);
     E.res = S.simular(E.circ, nv, { muestras: 500 });
     E.obj = nv.objetivo(E.res.entradas, E.res.t, E.res.dt);
-    E.punt = E.res.ok ? S.puntuar(E.res.salida, E.obj) : { coincidencia: 0, err: NaN };
+    E.punt = !E.res.ok ? { coincidencia: 0, err: NaN }
+      : nv.puntuar ? nv.puntuar(E.res.salida, E.obj, E.res.t)
+      : S.puntuar(E.res.salida, E.obj, nv.ref);
     // Escala de color de tensiones
     let m = 1;
     if (E.res.V) for (let n = 1; n < E.res.V.length; n++) for (const v of E.res.V[n]) if (Math.abs(v) > m) m = Math.abs(v);
@@ -198,6 +219,8 @@
     $('btnRehacer').disabled = !E.rehacer.length;
   }
 
+  const avisosReales = () => E.res.avisos.filter(a => a.clase !== 'info');
+
   /* ---------- Victoria ---------- */
   function comprobarVictoria() {
     const c = E.punt.coincidencia;
@@ -207,8 +230,8 @@
     $('coincidencia').textContent = pc >= 100 ? '100' : fmt(pc, 1);
     $('coincidenciaBarra').style.width = (100 * c).toFixed(1) + '%';
     if (ganado && E.interaccion && !E.nivel.libre) {
-      const comp = E.tab.piezas.filter(p => COMPONENTES.includes(p.tipo)).length;
-      const limpio = !E.res.avisos.length && !E.circ.sueltos.length;
+      const comp = E.tab.piezas.filter(esComponente).length;
+      const limpio = !avisosReales().length && !E.circ.sueltos.length;
       let est = 1;
       if (comp <= E.par) est = limpio ? 3 : 2;
       if (E.ayuda) est = 1;
@@ -225,7 +248,8 @@
       else if (!limpio) txt += ' Revisa los avisos del diagnóstico para la tercera estrella.';
       else txt += ' Montaje limpio y con los componentes justos.';
       $('vicTexto').textContent = txt;
-      $('btnVicSiguiente').textContent = E.idx < N.NIVELES.length - 1 ? 'Siguiente nivel ›' : 'Laboratorio libre ›';
+      const sig = NIVELES[E.idx + 1];
+      $('btnVicSiguiente').textContent = !sig ? 'Volver al principio ›' : sig.libre ? 'Laboratorio libre ›' : sig.tema !== E.nivel.tema ? `Tema ${sig.tema.num} ›` : 'Siguiente nivel ›';
       abrirModal('modalVictoria');
     }
     E.ganado = ganado;
@@ -279,12 +303,18 @@
     E.hilos = [...svg.querySelectorAll('.hilo')].map(el => ({ el, pid: +el.dataset.pid, n: el.dataset.n, fill: !!el.dataset.f }));
     for (const hh of E.hilos) hh.nodo = E.circ.nudoDe(hh.pid, hh.n);
     E.gruposAO = E.circ.aos.map((a, k) => ({ k, g: svg.querySelector(`.pieza[data-id="${a.id}"]`), sat: svg.querySelector(`[data-sat="${a.id}"]`) }));
+    E.estDisp = E.circ.disp.map((d, k) => ({ k, d, el: svg.querySelector(`[data-est="${d.id}"]`), luz: svg.querySelector(`[data-luz="${d.id}"]`) }));
+    E.lucesCarga = (E.res.cargas || []).map((c, k) => {
+      let imax = 1e-9;
+      for (const v of c.i) imax = Math.max(imax, Math.abs(v));
+      return { k, el: svg.querySelector(`[data-luz="${c.id}"]`), imax };
+    });
     colorear();
     dibujarFantasma();
   }
 
   /* Miniosciloscopios junto a los conectores: forma de cada entrada y,
-     en la salida, el objetivo superpuesto a la salida real. */
+     a la derecha, el objetivo superpuesto a la salida real. */
   const MX = 92;
   function miniOsciloscopios() {
     const r = E.res;
@@ -308,22 +338,26 @@
       for (const a of arrs) if (a) for (const v of a) m = Math.max(m, Math.abs(v));
       return Gr.escalaBonita(m * 1.05);
     };
+    const salidaDibujo = () => {
+      const p = E.tab.piezas.find(q => q.tipo === 'salida');
+      const yc = ((p ? p.y : 6 + N.DY) + 0.5) * T, x0 = COLS * T + 10;
+      const escala = maxAbs(E.obj, r.ok ? r.salida : null);
+      let c = traza(E.obj, x0, yc, escala, 'mini-obj');
+      if (r.ok) c += traza(r.salida, x0, yc, escala, 'mini-real');
+      const titulo = medidaCorriente() ? E.nivel.medida.nombre.replace(/<sub>(.*?)<\/sub>/, ' $1') : 'vₒ';
+      return caja(x0, yc, titulo, c) +
+        (p ? `<path class="mini-guia" d="M${COLS * T} ${yc}H${x0}"/>` : '');
+    };
     let s = '';
     for (const p of E.tab.piezas) {
-      if (p.tipo === 'entrada') {
-        const y = r.entradas[p.k], yc = (p.y + 0.5) * T, x0 = -MX + 2;
+      if (p.tipo === 'entrada' || p.tipo === 'secundario') {
+        const y = r.entradas[p.k];
+        const yc = (p.y + (p.tipo === 'secundario' ? 1.5 : 0.5)) * T, x0 = -MX + 2;
         s += caja(x0, yc, E.nivel.entradas[p.k].nombre, traza(y, x0, yc, maxAbs(y), 'mini-ent'));
         s += `<path class="mini-guia" d="M${x0 + w} ${yc}H0"/>`;
-      } else if (p.tipo === 'salida') {
-        const yc = (p.y + 0.5) * T, x0 = COLS * T + 10;
-        const esc = maxAbs(E.obj, r.ok ? r.salida : null);
-        let c = traza(E.obj, x0, yc, esc, 'mini-obj');
-        if (r.ok) c += traza(r.salida, x0, yc, esc, 'mini-real');
-        s += caja(x0, yc, 'objetivo / vₒ', c);
-        s += `<path class="mini-guia" d="M${COLS * T} ${yc}H${x0}"/>`;
       }
     }
-    return s;
+    return s + salidaDibujo();
   }
 
   function leerColores() {
@@ -349,6 +383,7 @@
     return E.res.V[n][i];
   }
 
+  const ABREV_ESTADO = { 'OFF': 'OFF', 'ON': 'ON', 'Z': 'Z', 'corte': 'CORTE', 'activa': 'ACT', 'saturación': 'SAT', 'óhmica': 'ÓHM', 'ruptura': 'RUPT' };
   function colorear() {
     const activo = $('chkColor').checked && E.res.ok;
     for (const h of E.hilos || []) {
@@ -364,13 +399,31 @@
         a.sat.textContent = s > 0 ? '+SAT' : '−SAT';
       }
     }
+    // Estado de cada dispositivo y brillo de LED y cargas
+    for (const x of E.estDisp || []) {
+      if (!E.res.ok || !E.res.disp[x.k]) { if (x.el) x.el.textContent = ''; continue; }
+      const e = E.res.disp[x.k].est[E.cursor];
+      const nombre = S.NOMBRES_ESTADO[x.d.tipo][e];
+      if (x.el) {
+        x.el.textContent = ABREV_ESTADO[nombre];
+        x.el.setAttribute('class', 'est-disp est-' + ({ ON: 'on', Z: 'z', activa: 'act', 'saturación': 'sat', 'óhmica': 'sat', ruptura: 'rupt' }[nombre] || 'off'));
+      }
+      if (x.luz) x.luz.setAttribute('opacity', Math.min(1, Math.max(0, E.res.disp[x.k].i[E.cursor]) / 0.01).toFixed(2));
+    }
+    for (const c of E.lucesCarga || []) {
+      if (!c.el || !E.res.ok) continue;
+      c.el.setAttribute('opacity', Math.min(1, Math.abs(E.res.cargas[c.k].i[E.cursor]) / c.imax).toFixed(2));
+    }
   }
 
   /* ---------- Fantasma (vista previa de la pieza) ---------- */
   function piezaFantasma() {
     const hp = herrPieza();
     if (!hp || !E.hover) return null;
-    const p = { tipo: hp.tipo, r: E.rot, m: E.esp, valor: hp.valor };
+    const p = { tipo: hp.tipo, r: E.rot, m: E.esp };
+    if (hp.valor !== undefined) p.valor = hp.valor;
+    else if (P.TIPOS[hp.tipo].valor !== undefined) p.valor = P.TIPOS[hp.tipo].valor;
+    if (hp.par) p.par = Object.assign({}, hp.par);
     const [w, h] = P.dimensiones(p);
     p.x = E.hover[0] - Math.floor(w / 2);
     p.y = E.hover[1] - Math.floor(h / 2);
@@ -392,7 +445,7 @@
       capa.innerHTML = `<g class="fantasma${ok ? '' : ' invalido'}">${d.grupo}${d.etiquetas}</g>`;
     } else capa.innerHTML = '';
     if (hc) {
-      const ver = E.hover && !p && E.herr !== 'p:';
+      const ver = E.hover && !p;
       hc.setAttribute('visibility', ver ? 'visible' : 'hidden');
       if (E.hover) { hc.setAttribute('x', E.hover[0] * T); hc.setAttribute('y', E.hover[1] * T); }
     }
@@ -539,11 +592,11 @@
     const c = casillaDe(ev);
     if (!c) return;
     const p = E.tab.piezaEn(c[0], c[1]);
-    if (p && P.TIPOS[p.tipo].valor !== undefined) {
+    if (p && !p.fija) {
       E.sel = p.id;
       dibujarTablero();
       actualizarPropiedades();
-      const inp = $('propValor');
+      const inp = $('propiedades').querySelector('input');
       if (inp) { inp.focus(); inp.select(); }
     }
   });
@@ -575,6 +628,32 @@
   }
 
   /* ---------- Barra de estado ---------- */
+  function textoDispositivo(k) {
+    const d = E.circ.disp[k], r = E.res.disp[k], i = E.cursor, nd = d.nodos;
+    const v = (n) => tensionNodo(n, i);
+    const est = S.NOMBRES_ESTADO[d.tipo][r.est[i]];
+    const mA = (x) => fmt(1e3 * x, Math.abs(x) < 0.01 ? 3 : 1) + ' mA';
+    let s = `<b>${d.nombre}</b> (${P.TIPOS[d.tipo].nombre.toLowerCase()}) · <b>${est}</b>`;
+    switch (d.tipo) {
+      case 'diodo': case 'led': case 'zener':
+        s += ` · V<sub>AK</sub> = ${fmt(v(nd.a) - v(nd.k))} V · I<sub>AK</sub> = ${mA(r.i[i])}`;
+        break;
+      case 'npn': case 'pnp': {
+        const sg = d.tipo === 'pnp' ? -1 : 1, x = d.tipo === 'pnp' ? ['EB', 'EC'] : ['BE', 'CE'];
+        s += ` · V<sub>${x[0]}</sub> = ${fmt(sg * (v(nd.b) - v(nd.e)))} V · V<sub>${x[1]}</sub> = ${fmt(sg * (v(nd.c) - v(nd.e)))} V · I<sub>B</sub> = ${mA(r.ib[i])} · I<sub>C</sub> = ${mA(r.i[i])}`;
+        if (r.est[i] === 2) s += ` (β·I<sub>B</sub> = ${mA(d.par.beta * r.ib[i])})`;
+        break;
+      }
+      case 'nmos': case 'pmos': {
+        const sg = d.tipo === 'pmos' ? -1 : 1, x = d.tipo === 'pmos' ? ['SG', 'SD'] : ['GS', 'DS'];
+        s += ` · V<sub>${x[0]}</sub> = ${fmt(sg * (v(nd.g) - v(nd.s)))} V · V<sub>${x[1]}</sub> = ${fmt(sg * (v(nd.d) - v(nd.s)))} V · I<sub>D</sub> = ${mA(r.i[i])}`;
+        break;
+      }
+    }
+    if (Math.abs(r.p[i]) > 1e-4) s += ` · P = ${fmt(r.p[i], 3)} W`;
+    return s;
+  }
+
   function textoEstado() {
     const el = $('estadoTexto');
     const c = E.hover;
@@ -584,10 +663,12 @@
       if (p && E.res && E.res.ok) {
         const t = P.TIPOS[p.tipo];
         let s = `<b>${t.nombre}</b>`;
+        const kd = E.circ.disp.findIndex(d => d.id === p.id);
         if (p.tipo === 'resistencia' || p.tipo === 'condensador') s += ' ' + P.formatearValor(p.valor, t.unidad);
-        if (p.tipo === 'entrada') s = `<b>Entrada ${E.nivel.entradas[p.k].nombre}</b>`;
+        if (p.tipo === 'entrada' || p.tipo === 'secundario') s = `<b>${p.tipo === 'secundario' ? 'Secundario' : 'Entrada'} ${E.nivel.entradas[p.k].nombre}</b>`;
         if (p.tipo === 'salida') s = '<b>Salida v<sub>o</sub></b>';
-        if (p.tipo === 'ao') {
+        if (kd >= 0) s = textoDispositivo(kd);
+        else if (p.tipo === 'ao') {
           const k = E.circ.aos.findIndex(a => a.id === p.id);
           const a = E.circ.aos[k];
           const vp = tensionNodo(a.p, E.cursor), vn = tensionNodo(a.n, E.cursor), vo = tensionNodo(a.o, E.cursor);
@@ -603,6 +684,8 @@
               const va = tensionNodo(E.circ.nudoDe(p.id, 'a'), E.cursor), vb = tensionNodo(E.circ.nudoDe(p.id, 'b'), E.cursor);
               s += ` · corriente ${fmt(1000 * (va - vb) / p.valor, 3)} mA`;
             }
+            const kc = (E.res.cargas || []).findIndex(z => z.id === p.id);
+            if (kc >= 0) s += ` · corriente ${fmt(1000 * E.res.cargas[kc].i[E.cursor], 1)} mA`;
           }
         }
         el.innerHTML = s + ` <span style="opacity:.7">(t = ${fmt(ti)} ms)</span>`;
@@ -611,11 +694,12 @@
     }
     const ayudas = {
       lapiz: 'Lápiz: arrastra desde una patilla para dibujar un cable. Pasar en recto sobre otro cable lo cruza sin unirlo; terminar sobre él los une.',
-      sel: 'Seleccionar: clic en una pieza para editar su valor; arrástrala para moverla. Clic derecho gira.',
+      sel: 'Seleccionar: clic en una pieza para ver o editar sus valores; arrástrala para moverla. Clic derecho gira.',
       borrar: 'Borrar: clic o arrastra sobre las piezas que quieras quitar.',
       sonda: 'Sonda: clic en un cable para ver su tensión en la gráfica de salida (hasta 3). Clic otra vez para quitarla.'
     };
-    el.innerHTML = ayudas[E.herr] || 'Clic para colocar · clic derecho o <kbd>R</kbd> para girar' + (E.herr === 'p:ao' ? ' · <kbd>M</kbd> intercambia + y −' : '') + ' · <kbd>Esc</kbd> para soltar la pieza.';
+    const hp = herrPieza();
+    el.innerHTML = ayudas[E.herr] || 'Clic para colocar · clic derecho o <kbd>R</kbd> para girar' + (hp && /ao|npn|pnp|mos/.test(hp.tipo) ? ' · <kbd>M</kbd> voltea la pieza' : '') + ' · <kbd>Esc</kbd> para soltar la pieza.';
   }
 
   /* ---------- Gráficas y panel ---------- */
@@ -624,15 +708,18 @@
     if (!r) return;
     const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
     const colEnt = [css('--sig-1'), css('--sig-2'), css('--probe-3')];
-    let m = 0.5;
-    for (const e of r.entradas) for (const v of e) m = Math.max(m, Math.abs(v));
-    const seriesE = r.entradas.map((e, k) => ({ y: e, color: colEnt[k], ancho: 2 }));
-    Gr.dibujar($('grafEntradas'), { t: r.t, series: seriesE, ymax: Gr.escalaBonita(m * 1.05), cursor: E.cursor });
+    if (r.entradas.length) {
+      let m = 0.5;
+      for (const e of r.entradas) for (const v of e) m = Math.max(m, Math.abs(v));
+      const seriesE = r.entradas.map((e, k) => ({ y: e, color: colEnt[k], ancho: 2 }));
+      Gr.dibujar($('grafEntradas'), { t: r.t, series: seriesE, ymax: Gr.escalaBonita(m * 1.05), cursor: E.cursor });
+    }
 
     let mo = 0.5;
     for (const v of E.obj) mo = Math.max(mo, Math.abs(v));
     if (r.ok) for (const v of r.salida) mo = Math.max(mo, Math.abs(v));
-    const sondas = E.sondas.map((s, i) => ({ y: s.nodo > 0 && r.V ? r.V[s.nodo] : (s.nodo === 0 ? new Float32Array(r.t.length) : null), color: css('--probe-' + (i + 1)), ancho: 1.6 }));
+    const corriente = medidaCorriente();
+    const sondas = corriente ? [] : E.sondas.map((s, i) => ({ y: s.nodo > 0 && r.V ? r.V[s.nodo] : (s.nodo === 0 ? new Float32Array(r.t.length) : null), color: css('--probe-' + (i + 1)), ancho: 1.6 }));
     for (const s of sondas) if (s.y) for (const v of s.y) mo = Math.max(mo, Math.abs(v));
     const ymax = Gr.escalaBonita(mo * 1.05);
     const series = [
@@ -640,9 +727,10 @@
       ...sondas,
       { y: r.ok ? r.salida : null, color: css('--sig-real'), ancho: 2.2 }
     ];
+    const hayAO = E.tab.piezas.some(p => p.tipo === 'ao');
     Gr.dibujar($('grafSalida'), {
-      t: r.t, series, ymax, cursor: E.cursor,
-      lineas: [{ v: E.nivel.Vsat, color: css('--bad') }, { v: -E.nivel.Vsat, color: css('--bad') }]
+      t: r.t, series, ymax, cursor: E.cursor, unidad: unidadSalida(),
+      lineas: hayAO && !corriente ? [{ v: E.nivel.Vsat, color: css('--bad') }, { v: -E.nivel.Vsat, color: css('--bad') }] : []
     });
     leyendas();
     $('cursor').max = r.t.length - 1;
@@ -651,17 +739,19 @@
   }
 
   function leyendas() {
-    const r = E.res, i = E.cursor;
+    const r = E.res, i = E.cursor, u = unidadSalida();
     const css = (n) => `var(${n})`;
     const colEnt = ['--sig-1', '--sig-2', '--probe-3'];
     $('leyendaEntradas').innerHTML = E.nivel.entradas.map((e, k) =>
       `<span><i style="background:${css(colEnt[k])}"></i>${e.nombre} = ${fmt(r.entradas[k][i])} V</span>`).join('');
-    let h = `<span><i class="disc" style="border-color:${css('--sig-obj')}"></i>objetivo ${fmt(E.obj[i])} V</span>`;
-    h += `<span><i style="background:${css('--sig-real')}"></i>vₒ real ${r.ok ? fmt(r.salida[i]) + ' V' : '—'}</span>`;
-    E.sondas.forEach((s, k) => {
+    const dec = u === 'mA' ? 1 : 2;
+    let h = `<span><i class="disc" style="border-color:${css('--sig-obj')}"></i>objetivo ${fmt(E.obj[i], dec)} ${u}</span>`;
+    h += `<span><i style="background:${css('--sig-real')}"></i>${nombreSalida()} real ${r.ok ? fmt(r.salida[i], dec) + ' ' + u : '—'}</span>`;
+    if (!medidaCorriente()) E.sondas.forEach((s, k) => {
       const v = tensionNodo(s.nodo, i);
       h += `<span><i style="background:${css('--probe-' + (k + 1))}"></i>sonda ${k + 1} ${v === null ? '—' : fmt(v) + ' V'}<button class="quitar" data-sonda="${k}" title="Quitar sonda">×</button></span>`;
     });
+    if (E.punt && E.punt.periodo0) h += `<span>T = ${E.punt.periodo ? fmt(E.punt.periodo, 3) : '—'} ms (objetivo ${fmt(E.punt.periodo0, 3)} ms)</span>`;
     $('leyendaSalida').innerHTML = h;
   }
 
@@ -674,11 +764,12 @@
       const n = E.circ.sueltos.length;
       items.push(['aviso', `Hay ${n} extremo${n > 1 ? 's' : ''} de cable suelto${n > 1 ? 's' : ''} (círculos rojos): no conecta${n > 1 ? 'n' : ''} con nada.`]);
     }
-    for (const a of r.avisos) items.push(['aviso', a.txt, a.id]);
+    for (const a of r.avisos) items.push([a.clase || 'aviso', a.txt, a.id]);
     if (E.nivel.libre && E.nivel.errorExpr) items.push(['error', E.nivel.errorExpr]);
-    if (!E.tab.piezas.some(p => p.tipo === 'ao') && !E.nivel.libre) items.push(['info', 'Todavía no hay ningún AO en el tablero.']);
+    const usaAO = E.nivel.piezas.includes('ao');
+    if (usaAO && !E.tab.piezas.some(p => p.tipo === 'ao') && !E.nivel.libre) items.push(['info', 'Todavía no hay ningún AO en el tablero.']);
     if (r.ok && E.punt.coincidencia >= UMBRAL && !r.errores.length) items.unshift(['ok', '¡Objetivo conseguido! La salida coincide con la función pedida.']);
-    else if (r.ok && !items.length) items.push(['info', 'Sin problemas eléctricos. La salida todavía no coincide con el objetivo: compara las dos curvas.']);
+    else if (r.ok && !items.some(it => it[0] !== 'info')) items.push(['info', 'Sin problemas eléctricos. La salida todavía no coincide con el objetivo: compara las dos curvas.']);
     ul.innerHTML = items.map(([c, t, id]) => `<li class="${c}"${id ? ` data-id="${id}" style="cursor:pointer" title="Seleccionar la pieza"` : ''}>${esc(t)}</li>`).join('');
     actualizarPropiedades();
   }
@@ -693,49 +784,84 @@
     return v;
   }
 
+  // Parámetros editables en el laboratorio libre
+  const PARAMS_LIBRE = {
+    zener: [['vz', 'V<sub>Z</sub> (V)']],
+    npn: [['beta', 'β']], pnp: [['beta', 'β']],
+    nmos: [['vth', 'V<sub>TH</sub> (V)'], ['k', 'k (A/V²)']], pmos: [['vth', 'V<sub>TH</sub> (V)'], ['k', 'k (A/V²)']],
+    bobina: [['L', 'L (H)']]
+  };
+
   function actualizarPropiedades() {
     const box = $('propiedades');
     const p = E.sel ? E.tab.piezas.find(q => q.id === E.sel) : null;
     if (!p) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
     const t = P.TIPOS[p.tipo];
-    let h = `<h4>${t.nombre}</h4>`;
-    if (p.tipo === 'resistencia' || p.tipo === 'condensador' || (p.tipo === 'fuente' && E.nivel.fuentes === 'libre')) {
+    const libre = !!E.nivel.libre;
+    const kd = E.circ.disp.findIndex(d => d.id === p.id);
+    let h = `<h4>${kd >= 0 ? E.circ.disp[kd].nombre + ' · ' : ''}${t.nombre}</h4>`;
+    const editableValor = p.tipo === 'resistencia' || p.tipo === 'condensador' || (p.tipo === 'fuente' && E.nivel.fuentes === 'libre') || (t.carga && libre);
+    if (editableValor) {
       const txt = p.tipo === 'fuente' ? String(p.valor).replace('.', ',') : P.formatearValor(p.valor, t.unidad).replace(' ', '');
       h += `<div class="fila"><input type="text" id="propValor" value="${esc(txt)}" spellcheck="false" aria-label="Valor"></div>`;
       h += p.tipo === 'fuente' ? '<p class="nota">En voltios, p. ej. 5 o −2,5.</p>'
-        : `<p class="nota">Escribe el valor y pulsa Intro (${p.tipo === 'resistencia' ? '10k, 4,7k, 220, 1M' : '100n, 1u, 47n'}). <kbd>+</kbd>/<kbd>−</kbd>: serie E12.</p>`;
+        : p.tipo === 'condensador' ? '<p class="nota">Escribe el valor y pulsa Intro (100n, 1u, 47n). <kbd>+</kbd>/<kbd>−</kbd>: serie E12.</p>'
+        : `<p class="nota">Escribe el valor y pulsa Intro (10k, 4,7k, 220, 1M).${p.tipo === 'resistencia' ? ' <kbd>+</kbd>/<kbd>−</kbd>: serie E12.' : ''}</p>`;
     } else if (p.tipo === 'fuente') {
       h += `<p class="nota">Fuente de ${fmt(p.valor, 1)} V respecto a tierra (valor fijo en este nivel).</p>`;
-    } else if (p.tipo === 'entrada') {
+    } else if (t.carga) {
+      h += `<p class="nota">Carga de ${P.formatearValor(p.valor, 'Ω')}${p.tipo === 'bobina' ? ' y ' + P.formatearValor(P.parDe(p).L, 'H') : ''}, dada por el enunciado.</p>`;
+    } else if (p.tipo === 'entrada' || p.tipo === 'secundario') {
       const e = E.nivel.entradas[p.k];
-      h += `<p class="nota">${e.nombre}: ${e.texto}${e.Rs ? '. Tiene una resistencia interna de ' + P.formatearValor(e.Rs, 'Ω') : ''}. Conector fijo del nivel.</p>`;
+      h += `<p class="nota">${e.nombre}: ${e.texto}${e.Rs ? '. Tiene una resistencia interna de ' + P.formatearValor(e.Rs, 'Ω') : ''}${e.imax ? '. Puede dar como máximo ' + fmt(e.imax * 1e3, 0) + ' mA' : ''}. Conector fijo del nivel.</p>`;
     } else if (p.tipo === 'salida') {
       h += `<p class="nota">Aquí se mide v<sub>o</sub>${E.nivel.RL ? ', con una carga de ' + P.formatearValor(E.nivel.RL, 'Ω') + ' a tierra' : ''}. Conector fijo del nivel.</p>`;
     } else if (p.tipo === 'ao') {
       h += '<p class="nota">AO ideal alimentado a ±12 V. M intercambia las entradas + y −.</p>';
     }
+    if (t.par && p.tipo !== 'bobina') {
+      h += `<p class="nota">${textoParametros(p.tipo, p.par)}</p>`;
+      if (/npn|pnp|mos/.test(p.tipo)) h += '<p class="nota">M voltea la pieza (intercambia los terminales de arriba y abajo).</p>';
+    }
+    if (libre && PARAMS_LIBRE[p.tipo]) {
+      const q = P.parDe(p);
+      for (const [clave, nombre] of PARAMS_LIBRE[p.tipo]) {
+        h += `<div class="fila"><span style="min-width:62px">${nombre}</span><input type="text" data-par="${clave}" value="${String(q[clave]).replace('.', ',')}" spellcheck="false"></div>`;
+      }
+    }
     if (!p.fija) {
       h += '<div class="botones"><button class="btn" data-acc="girar">Girar (R)</button>';
-      if (p.tipo === 'ao') h += '<button class="btn" data-acc="espejo">+ ↔ − (M)</button>';
+      if (/ao|npn|pnp|mos/.test(p.tipo)) h += `<button class="btn" data-acc="espejo">${p.tipo === 'ao' ? '+ ↔ −' : 'Voltear'} (M)</button>`;
       h += '<button class="btn" data-acc="borrar">Borrar</button></div>';
     }
     box.innerHTML = h;
-    const inp = $('propValor');
-    if (inp) {
+    box.querySelectorAll('input').forEach(inp => {
       inp.addEventListener('keydown', ev => {
         ev.stopPropagation();
-        if (ev.key === 'Enter') { aplicarValor(p, inp); inp.blur(); }
+        if (ev.key === 'Enter') { aplicarCampo(p, inp); inp.blur(); }
         if (ev.key === 'Escape') inp.blur();
       });
-      inp.addEventListener('change', () => aplicarValor(p, inp));
-    }
+      inp.addEventListener('change', () => aplicarCampo(p, inp));
+    });
   }
 
-  function aplicarValor(p, inp) {
+  function aplicarCampo(p, inp) {
+    if (inp.dataset.par) {
+      const v = P.parsearValor(inp.value);
+      if (!Number.isFinite(v) || v <= 0) { inp.classList.add('mal'); return; }
+      inp.classList.remove('mal');
+      const q = P.parDe(p);
+      if (q[inp.dataset.par] === v) return;
+      empujar(instantanea());
+      p.par = Object.assign({}, p.par || {}, { [inp.dataset.par]: v });
+      cambio(true);
+      return;
+    }
     const v = P.parsearValor(inp.value);
     const okRango = p.tipo === 'fuente' ? Number.isFinite(v) && Math.abs(v) <= 50
-      : Number.isFinite(v) && v > 0 && (p.tipo === 'resistencia' ? (v >= 1 && v <= 1e9) : (v >= 1e-12 && v <= 1));
+      : p.tipo === 'condensador' ? Number.isFinite(v) && v >= 1e-12 && v <= 1
+      : Number.isFinite(v) && v >= 0.01 && v <= 1e9;
     if (!okRango) { inp.classList.add('mal'); return; }
     inp.classList.remove('mal');
     if (v === p.valor) return;
@@ -756,7 +882,7 @@
     const s = instantanea();
     let ok = false;
     if (acc === 'girar') ok = E.tab.girar(p.id);
-    if (acc === 'espejo' && p.tipo === 'ao') ok = E.tab.espejo(p.id);
+    if (acc === 'espejo' && /ao|npn|pnp|mos/.test(p.tipo)) ok = E.tab.espejo(p.id);
     if (acc === 'borrar') { ok = E.tab.quitar(p.id); E.sel = null; }
     if (ok) { empujar(s); cambio(true); }
   }
@@ -850,16 +976,28 @@
   });
 
   function abrirNiveles() {
-    $('rejillaNiveles').innerHTML = NIVELES.map((nv, i) => {
+    const carta = (nv) => {
+      const i = NIVELES.indexOf(nv);
       const est = E.progreso[nv.id] || 0;
       return `<button class="carta${i === E.idx ? ' actual' : ''}" data-i="${i}">
-        <span class="n">${nv.libre ? 'Extra' : 'Nivel ' + (i + 1)}</span>
+        <span class="n">${nv.libre ? 'Extra' : 'Nivel ' + nv.numero}</span>
         <span class="t">${nv.titulo}</span>
         <span class="c">${nv.concepto}</span>
         ${nv.libre ? '' : `<span class="f">${nv.objetivoHTML}</span><span class="estrellas">${estrellasHTML(est)}</span>`}
       </button>`;
-    }).join('');
+    };
+    let h = '';
+    for (const tema of N.TEMAS) {
+      const total = tema.niveles.length * 3;
+      const conseguidas = tema.niveles.reduce((s, nv) => s + (E.progreso[nv.id] || 0), 0);
+      h += `<section class="tema-niveles"><h3><span class="tema-num">Tema ${tema.num}</span> ${tema.nombre}<span class="tema-prog">★ ${conseguidas}/${total}</span></h3>` +
+        `<div class="rejilla-niveles">${tema.niveles.map(carta).join('')}</div></section>`;
+    }
+    h += `<section class="tema-niveles"><h3><span class="tema-num">Extra</span> Laboratorio</h3><div class="rejilla-niveles">${carta(N.LIBRE)}</div></section>`;
+    $('rejillaNiveles').innerHTML = h;
     abrirModal('modalNiveles');
+    const actual = $('rejillaNiveles').querySelector('.carta.actual');
+    if (actual) actual.scrollIntoView({ block: 'center' });
   }
   $('rejillaNiveles').addEventListener('click', ev => {
     const c = ev.target.closest('[data-i]');
@@ -890,7 +1028,7 @@
     confirmar('¿Ver la solución?', 'Sustituirá tu circuito (puedes recuperarlo con Deshacer). Si superas el nivel partiendo de ella, solo obtendrás una estrella.', 'Ver solución', () => {
       empujar(instantanea());
       E.tab.cargar(E.tab.serializar().filter(p => p.fija));
-      N.aplicarSolucion(E.tab, E.nivel.solucion);
+      N.aplicarSolucion(E.tab, E.nivel.solucion, E.nivel);
       E.ayuda = true; E.sel = null;
       E.mejorSesion = Math.max(E.mejorSesion, 1);   // no celebrar la solución
       cambio(false);
@@ -972,16 +1110,16 @@
   const tema = ALM.leer('tema', null);
   if (tema) document.documentElement.dataset.theme = tema;
   leerColores();
-  // ?nivel=<id o número> abre un nivel concreto; &solucion muestra la solución (para clase)
+  // ?nivel=<id o número, p. ej. 1.2> abre un nivel concreto; &solucion muestra la solución (para clase)
   const params = new URLSearchParams(location.search);
   const pedido = params.get('nivel');
   let idx0 = -1;
-  if (pedido) idx0 = /^\d+$/.test(pedido) ? +pedido - 1 : NIVELES.findIndex(n => n.id === pedido);
-  if (idx0 < 0 || idx0 >= NIVELES.length) idx0 = Math.max(0, NIVELES.findIndex(n => n.id === ALM.leer('nivel', null)));
+  if (pedido) idx0 = NIVELES.findIndex(n => n.id === pedido || n.numero === pedido);
+  if (idx0 < 0) idx0 = Math.max(0, NIVELES.findIndex(n => n.id === ALM.leer('nivel', null)));
   cargarNivel(idx0);
   if (params.has('solucion') && E.nivel.solucion) {
     E.tab.cargar(E.tab.serializar().filter(p => p.fija));
-    N.aplicarSolucion(E.tab, E.nivel.solucion);
+    N.aplicarSolucion(E.tab, E.nivel.solucion, E.nivel);
     E.ayuda = true; E.mejorSesion = 1;
     cambio(false);
   } else if (!ALM.leer('ayudaVista', false) && !pedido) abrirModal('modalAyuda');

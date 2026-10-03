@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Circuitos con AO</title>
-<meta name="description" content="Juego de construcción de circuitos con amplificadores operacionales lineales (Electrónica, Tema 6).">
+<title>Circuitos de Electrónica</title>
+<meta name="description" content="Juego de construcción de circuitos: diodos, transistores y amplificadores operacionales.">
 <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
@@ -13,8 +13,8 @@
   <div class="marca">
     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 4 L6 28 L28 16 Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 10h4M11 8v4M9 22h4" stroke="currentColor" stroke-width="2"/></svg>
     <div>
-      <div class="marca-tit">Circuitos con AO</div>
-      <div class="marca-sub">Electrónica · Tema 6 · Aplicaciones lineales</div>
+      <div class="marca-tit">Circuitos de Electrónica</div>
+      <div class="marca-sub" id="marcaSub">Electrónica</div>
     </div>
   </div>
   <div class="nivel-actual">
@@ -73,7 +73,7 @@
       <div class="libre" id="libreConfig" hidden></div>
     </section>
 
-    <section class="tarjeta">
+    <section class="tarjeta" id="tarjetaEntradas">
       <div class="graf-cab">
         <h3>Entradas</h3>
         <div class="leyenda" id="leyendaEntradas"></div>
@@ -84,7 +84,7 @@
 
     <section class="tarjeta">
       <div class="graf-cab">
-        <h3>Salida</h3>
+        <h3 id="tituloSalida">Salida</h3>
         <div class="leyenda" id="leyendaSalida"></div>
       </div>
       <canvas id="grafSalida" height="180"></canvas>
@@ -108,8 +108,8 @@
   <div class="modal-caja ancha">
     <button class="cerrar" data-cerrar aria-label="Cerrar">×</button>
     <h2>Niveles</h2>
-    <p class="sub">Cada nivel trabaja un montaje del tema. Las estrellas: <b>★</b> conseguido · <b>★★</b> sin usar más componentes de los necesarios · <b>★★★</b> además, sin avisos (ningún AO saturado ni cables sueltos).</p>
-    <div class="rejilla-niveles" id="rejillaNiveles"></div>
+    <p class="sub">Cada nivel trabaja un montaje de un tema de la asignatura. Las estrellas: <b>★</b> conseguido · <b>★★</b> sin usar más componentes de los necesarios · <b>★★★</b> además, sin avisos (ningún AO saturado ni cables sueltos).</p>
+    <div id="rejillaNiveles"></div>
   </div>
 </div>
 
@@ -128,12 +128,13 @@
           <li><b>Lápiz</b>: arrastra para dibujar cables; pone solo rectos, codos y nudos.</li>
           <li><b>Seleccionar</b>: clic para ver y cambiar el valor de una pieza; arrastra para moverla.</li>
           <li><b>Sonda</b>: clic en un cable para ver su tensión en la gráfica.</li>
+          <li><b>Pasa el ratón</b> por un diodo, transistor o AO para ver sus tensiones, corrientes y estado.</li>
         </ul>
       </div>
       <div>
         <h4>Teclado</h4>
         <ul>
-          <li><kbd>R</kbd> girar · <kbd>M</kbd> intercambiar + y − del AO</li>
+          <li><kbd>R</kbd> girar · <kbd>M</kbd> voltear (+ y − del AO, terminales del transistor)</li>
           <li><kbd>Supr</kbd> borrar la pieza seleccionada</li>
           <li><kbd>+</kbd>/<kbd>−</kbd> siguiente valor normalizado (E12)</li>
           <li><kbd>V</kbd> seleccionar · <kbd>W</kbd> lápiz · <kbd>E</kbd> borrar · <kbd>P</kbd> sonda</li>
@@ -141,8 +142,14 @@
         </ul>
       </div>
     </div>
-    <h4>El modelo</h4>
-    <p>Los AO son ideales (ganancia infinita, sin corriente de entrada, impedancia de salida nula) y se alimentan a ±12 V, así que su salida no puede pasar de <b>±12 V</b>. Con realimentación negativa el AO lleva su salida a la tensión que hace <b>v<sup>+</sup> = v<sup>−</sup></b>; con realimentación positiva o sin realimentación, la salida se va a ±12 V. Las fuentes de un terminal están referidas a tierra.</p>
+    <h4>Los modelos (los de los apuntes)</h4>
+    <ul>
+      <li><b>Diodo</b>: ON (fuente de V<sub>γ</sub> = 0,7 V; LED, 2 V) u OFF (abierto). <b>Zener</b>: además, avalancha a V<sub>Z</sub>.</li>
+      <li><b>BJT</b>: corte, activa (V<sub>BE</sub> = 0,7 V, I<sub>C</sub> = β·I<sub>B</sub>) o saturación (V<sub>CE</sub> = 0,2 V). Si V<sub>CE</sub> supera V<sub>CEO</sub>, entra en ruptura y se destruye.</li>
+      <li><b>MOSFET</b>: corte, activa (I<sub>D</sub> = k(V<sub>GS</sub> − V<sub>TH</sub>)²) u óhmica (R<sub>DS(on)</sub>).</li>
+      <li><b>AO</b> ideal alimentado a ±12 V: con realimentación negativa hace <b>v<sup>+</sup> = v<sup>−</sup></b>; sin ella o con realimentación positiva, su salida se va a ±12 V.</li>
+    </ul>
+    <p>El estado de cada dispositivo se busca como en clase: se supone, se resuelve el circuito y se comprueba. En el tablero verás el estado de cada uno (ON, OFF, ACT, SAT…). Las fuentes de un terminal están referidas a tierra.</p>
     <div class="modal-pie"><button class="btn primario" data-cerrar>Empezar</button></div>
   </div>
 </div>

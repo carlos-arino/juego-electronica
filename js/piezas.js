@@ -57,9 +57,53 @@
       nombre: 'Amplificador operacional', w: 3, h: 3,
       puertos: [{ x: 0, y: 0, d: 3, n: 'n' }, { x: 0, y: 2, d: 3, n: 'p' }, { x: 2, y: 1, d: 1, n: 'o' }]
     },
+    diodo: {
+      nombre: 'Diodo', w: 1, h: 1, disp: true, par: { vg: 0.7 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'k' }]
+    },
+    zener: {
+      nombre: 'Diodo Zener', w: 1, h: 1, disp: true, par: { vg: 0.7, vz: 5.1 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'k' }]
+    },
+    led: {
+      nombre: 'LED', w: 1, h: 1, disp: true, par: { vg: 2, imax: 0.03 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'k' }]
+    },
+    npn: {
+      nombre: 'Transistor NPN', w: 1, h: 1, disp: true, par: { beta: 100, vbe: 0.7, vcesat: 0.2, vceo: 45 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'b' }, { x: 0, y: 0, d: 0, n: 'c' }, { x: 0, y: 0, d: 2, n: 'e' }]
+    },
+    pnp: {
+      nombre: 'Transistor PNP', w: 1, h: 1, disp: true, par: { beta: 100, vbe: 0.7, vcesat: 0.2, vceo: 45 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'b' }, { x: 0, y: 0, d: 0, n: 'e' }, { x: 0, y: 0, d: 2, n: 'c' }]
+    },
+    nmos: {
+      nombre: 'MOSFET canal N', w: 1, h: 1, disp: true, par: { vth: 2, k: 0.5, ron: 0.1, vdss: 60 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'g' }, { x: 0, y: 0, d: 0, n: 'd' }, { x: 0, y: 0, d: 2, n: 's' }]
+    },
+    pmos: {
+      nombre: 'MOSFET canal P', w: 1, h: 1, disp: true, par: { vth: 2, k: 0.5, ron: 0.1, vdss: 60 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'g' }, { x: 0, y: 0, d: 0, n: 's' }, { x: 0, y: 0, d: 2, n: 'd' }]
+    },
+    lampara: {
+      nombre: 'Lámpara', w: 1, h: 1, carga: true, valor: 48, unidad: 'Ω',
+      puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'b' }]
+    },
+    motor: {
+      nombre: 'Motor', w: 1, h: 1, carga: true, valor: 12, unidad: 'Ω',
+      puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'b' }]
+    },
+    bobina: {
+      nombre: 'Bobina de relé', w: 1, h: 1, carga: true, valor: 240, unidad: 'Ω', par: { L: 0.02 },
+      puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 0, d: 1, n: 'b' }]
+    },
     entrada: {
       nombre: 'Entrada', w: 1, h: 1, fija: true,
       puertos: [{ x: 0, y: 0, d: 1, n: 'a' }]
+    },
+    secundario: {
+      nombre: 'Secundario del transformador', w: 1, h: 3, fija: true,
+      puertos: [{ x: 0, y: 0, d: 1, n: 'a' }, { x: 0, y: 2, d: 1, n: 'b' }]
     },
     salida: {
       nombre: 'Salida', w: 1, h: 1, fija: true,
@@ -166,6 +210,11 @@
     return parseFloat(m[1]) * f;
   }
 
+  /* Parámetros de un dispositivo: los del tipo completados con los de la pieza. */
+  function parDe(p) {
+    return Object.assign({}, TIPOS[p.tipo].par || {}, p.par || {});
+  }
+
   G.Piezas = { TIPOS, DX, DY, transformarPunto, transformarDir, dimensiones, casillas, puertos,
-    claveBorde, cableDesdeDirs, dirsDeCable, formatearValor, parsearValor };
+    claveBorde, cableDesdeDirs, dirsDeCable, formatearValor, parsearValor, parDe };
 })(typeof window !== 'undefined' ? window : globalThis);

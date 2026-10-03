@@ -1,6 +1,6 @@
-# Circuitos con AO
+# Circuitos de Electrónica
 
-Juego de construcción de circuitos para el **Tema 6 de Electrónica: el amplificador operacional y sus aplicaciones lineales**. El alumnado monta un circuito con piezas sobre un tablero para que la salida real coincida con una salida objetivo dada.
+Juego de construcción de circuitos para la asignatura de Electrónica. El alumnado monta un circuito con piezas sobre un tablero para que la salida real (una tensión o la corriente de una carga) coincida con un objetivo dado. Hay 31 niveles en cinco temas y un laboratorio libre.
 
 ## Cómo abrirlo
 
@@ -12,59 +12,79 @@ python -m http.server 8765
 
 Enlaces útiles para clase:
 
-- `index.html?nivel=inversor`: abre directamente un nivel, por su identificador o por su número (`?nivel=2`).
-- `index.html?nivel=inversor&solucion`: abre el nivel con la solución ya montada.
+- `index.html?nivel=1.2` o `index.html?nivel=puente`: abre directamente un nivel, por su número o por su identificador.
+- `index.html?nivel=puente&solucion`: abre el nivel con la solución ya montada.
 
 El progreso (estrellas) y el circuito de cada nivel se guardan en el navegador de cada alumno.
 
+## Temas y niveles
+
+| Nivel | Título | Objetivo |
+|-------|--------|----------|
+| **Tema 1** | **Diodos** | |
+| 1.1 | Rectificador de media onda | vₒ = máx(v₁ − 0,7 V, 0) |
+| 1.2 | Rectificador en puente (secundario flotante) | vₒ = máx(\|v₁\| − 1,4 V, 0) |
+| 1.3 | Filtro con condensador | rizado ΔV ≈ I_L/(f_r·C) ≈ 1 V |
+| 1.4 | Recortador con dos Zener | recortar a ±(V_Z + V_γ) |
+| 1.5 | Zona muerta | vₒ = máx(v₁ − 4 V, 0) |
+| 1.6 | Regulador con Zener (P_máx del Zener) | vₒ = 5,1 V |
+| **Tema 3** | **El transistor en continua** | |
+| 3.1 | Corte, activa y saturación | V_CE(v₁) en emisor común |
+| 3.2 | Seguidor de emisor (entrada de 1 mA como máximo) | vₒ = v₁ − 0,7 V |
+| 3.3 | Regulador lineal | vₒ = V_Z − 0,7 = 5 V |
+| 3.4 | Fuente de corriente con Zener | I_LED = 10 mA |
+| 3.5 | MOSFET: característica de transferencia | V_DS(v₁) |
+| **Tema 4** | **El transistor en conmutación** | |
+| 4.1 | Encender un LED desde el µC | I_LED = 10 mA |
+| 4.2 | Relé con un NPN (diodo volante) | I_bobina ≈ 49 mA |
+| 4.3 | Motor con un MOSFET (nivel lógico frente a estándar) | I_motor ≈ 1 A |
+| 4.4 | Lado alto con PNP y excitador NPN | I_lámpara ≈ 0,5 A |
+| **Tema 6** | **El AO: aplicaciones lineales** | |
+| 6.1–6.11 | Seguidor, inversor, no inversor, sumadores, restador, acondicionamiento, convertidor A/D, instrumentación, integrador | |
+| **Tema 7** | **El AO: aplicaciones no lineales** | |
+| 7.1 | Comparador | ±12 V según v₁ > 2 V |
+| 7.2 | Disparador de Schmitt (entrada con ruido) | umbrales ±3 V |
+| 7.3 | Rectificador de precisión | vₒ = máx(v₁, 0) con 0,5 V de pico |
+| 7.4 | Limitador con Zener | −5·v₁ limitada a ±5,4 V |
+| 7.5 | Multivibrador astable (se puntúa el periodo) | T = 2 ms |
+| Extra | Laboratorio libre: señales, función objetivo y parámetros configurables | |
+
 ## Mecánica
 
-- **Tablero**: los conectores de entrada (`v₁`, `v₂`) están a la izquierda y el de salida (`vₒ`) a la derecha. Junto a cada conector hay un miniosciloscopio: el de las entradas muestra su forma de onda y el de la salida, el objetivo superpuesto a la salida real.
-- **Piezas**: cable recto, cable en L, nudo en T, nudo en cruz, cruce sin unión, resistencia, condensador (solo en el integrador), tierra, fuente de tensión de un terminal (referida a tierra) y AO.
-- **Objetivo**: arriba se muestra la función numérica (por ejemplo `vₒ = −2·v₁`). A la derecha están las gráficas de las entradas y de la salida (objetivo y real) y el porcentaje de coincidencia, `1 − error RMS / valor RMS del objetivo`. El nivel se supera con un 98 %.
-- **Estrellas**: ★ nivel superado; ★★ sin usar más componentes que la solución de referencia; ★★★ además sin avisos (ningún AO saturado ni cables sueltos).
-- **Diagnóstico**: avisa de realimentación positiva, bucle abierto, saturación, entradas del AO al aire, extremos sueltos y cortocircuitos entre fuentes.
-- **Ayudas**: el lápiz dibuja cables arrastrando, la sonda muestra la tensión de cualquier nudo y, al pasar el ratón sobre un AO, se ven v⁺, v⁻ y vₒ, de modo que se comprueba el cortocircuito virtual. La animación colorea los cables según su tensión.
+- **Tablero**: los conectores de entrada están a la izquierda: generador de señal, salida digital del µC o secundario flotante de un transformador. El conector de salida está a la derecha. Junto a ellos hay miniosciloscopios con la forma de onda de cada entrada y el objetivo superpuesto a la salida real.
+- **Piezas**: cables rectos y en L, nudos en T y en cruz, cruce sin unión, resistencia, condensador, tierra, fuente de un terminal, diodo, Zener, LED, NPN, PNP, MOSFET N y P, AO, y como cargas lámpara, motor y bobina de relé.
+- **Estado de los dispositivos**: cada diodo o transistor muestra en el tablero su estado en el instante elegido (ON, OFF, Z, CORTE, ACT, SAT, ÓHM, RUPT). Al pasar el ratón se ven sus tensiones, corrientes y potencia. Los LED y las lámparas brillan según su corriente.
+- **Objetivo y puntuación**: coincidencia = `1 − error RMS / referencia`, y el nivel se supera con un 98 %. En el astable se compara el periodo.
+- **Estrellas**: ★ nivel superado; ★★ sin usar más componentes que la solución de referencia; ★★★ además sin avisos.
+- **Diagnóstico**: avisa de realimentación positiva, bucle abierto y saturación de los AO. También de transistores que no saturan en conmutación, bases o puertas al aire y extremos de cable sueltos. Son errores, que impiden superar el nivel, la ruptura (V_CE > V_CEO, típica al cortar una bobina sin diodo volante), la potencia excesiva de un Zener, un LED quemado, la corriente excesiva pedida al µC y los cortocircuitos.
 
 ## Modelo eléctrico
 
-- Análisis nodal modificado (MNA) en el dominio del tiempo, con 500 muestras por simulación. Los condensadores se integran por Euler implícito.
-- **AO ideal alimentado a ±12 V**. Su salida es una fuente de tensión que toma el valor que hace v⁺ = v⁻, siempre que ese equilibrio sea estable (realimentación negativa) y quede dentro de ±12 V. Si no, la salida se queda en ±12 V. La estabilidad se comprueba con el criterio de Routh–Hurwitz sobre la matriz de realimentación, así que la realimentación positiva satura aunque la ecuación v⁺ = v⁻ tenga solución, como explican los apuntes.
-- Las entradas pueden tener resistencia interna y la salida una carga. El nivel del seguidor las usa para que conectar la entrada directamente a la salida con un cable no funcione.
+Análisis nodal modificado (MNA) en el dominio del tiempo, con 500 muestras. Los condensadores y las bobinas se integran por Euler implícito. Los dispositivos usan los modelos por tramos de los apuntes:
 
-## Niveles
+- **Diodo**: OFF (abierto) u ON (fuente de V_γ = 0,7 V; LED, 2 V). **Zener**: además, avalancha a V_Z.
+- **BJT**: corte, activa (V_BE = 0,7 V, I_C = β·I_B), saturación (V_CE = 0,2 V) y ruptura (V_CE = V_CEO).
+- **MOSFET**: corte, activa (I_D = k(V_GS − V_TH)², resuelta por Newton), óhmica (R_DS(on)) y ruptura.
+- **AO ideal** alimentado a ±12 V. La salida toma el valor que hace v⁺ = v⁻ si ese equilibrio es estable (criterio de Routh–Hurwitz sobre la matriz de realimentación). Si no, se queda en ±12 V y conserva el estado anterior, lo que da la histéresis del Schmitt.
 
-| # | Nivel | Objetivo |
-|---|-------|----------|
-| 1 | Seguidor de tensión (fuente con Rs = 10 kΩ, carga de 1 kΩ) | vₒ = v₁ |
-| 2 | Amplificador inversor | vₒ = −2·v₁ |
-| 3 | Amplificador no inversor | vₒ = 3·v₁ |
-| 4 | Sumador inversor | vₒ = −(v₁ + v₂) |
-| 5 | Sumador ponderado | vₒ = −(2·v₁ + 0,5·v₂) |
-| 6 | Restador (rechazo del offset común) | vₒ = v₁ − v₂ |
-| 7 | Sumador no inversor | vₒ = v₁ + v₂ |
-| 8 | Acondicionar un sensor (solo con fuente de −5 V) | vₒ = 2·v₁ + 1 V |
-| 9 | Adaptar al convertidor A/D (solo con fuente de +5 V) | vₒ = 1,5·v₁ + 2,5 V |
-| 10 | Puente de sensores (Rs = 10 kΩ en cada rama) | vₒ = 10·(v₁ − v₂) |
-| 11 | Integrador inversor | vₒ = −(1/1 ms)·∫v₁ dt |
-| ∞ | Laboratorio libre: entradas y función objetivo configurables | — |
-
-Para añadir o cambiar niveles, edita `js/niveles.js`. Cada nivel define sus entradas, la función objetivo, las piezas disponibles, una pista y una solución de referencia escrita como guion.
+El estado de los dispositivos se busca como en clase: se supone uno, se resuelve el circuito lineal, se comprueban las condiciones y se cambia el dispositivo que más las incumple. Si no converge, se prueban todas las combinaciones.
 
 ## Estructura
 
 ```
 index.html          interfaz
 css/estilos.css     estilos (tema claro y oscuro)
-js/piezas.js        geometría y puertos de las piezas
+js/piezas.js        geometría, puertos y parámetros de las piezas
 js/tablero.js       modelo del tablero, lápiz de cables, deshacer
-js/simulador.js     lista de nudos, MNA y modelo del AO
-js/niveles.js       niveles, señales y soluciones
+js/simulador.js     lista de nudos, MNA, dispositivos y AO
+js/niveles.js       temas, niveles, señales y soluciones
 js/dibujo.js        símbolos SVG
 js/graficas.js      gráficas de formas de onda
 js/juego.js         controlador de la interfaz
 test/test.js        comprueba las soluciones y casos de error
 ```
+
+Para añadir niveles, edita `js/niveles.js`. Cada nivel define sus entradas, su objetivo (una función o `'solucion'`, que simula la solución de referencia), las piezas de la paleta (con sus parámetros), una pista y la solución escrita como guion.
 
 ## Pruebas
 
@@ -72,4 +92,4 @@ test/test.js        comprueba las soluciones y casos de error
 node test/test.js
 ```
 
-Comprueba que la solución de referencia de cada nivel da una coincidencia del 100 %. También comprueba casos de error: conectar la entrada directamente a la salida, intercambiar + y −, saturar el AO, dejarlo en bucle abierto y cortocircuitar su salida.
+Comprueba que la solución de referencia de cada uno de los 31 niveles da al menos un 99 % de coincidencia, sin errores ni cables sueltos. También comprueba 18 errores típicos, entre ellos: el diodo al revés, un puente con un diodo abierto, el relé sin diodo volante, un MOSFET que no es de nivel lógico, la base del PNP al aire, el LED sin resistencia, el Schmitt sin histéresis y el AO con + y − intercambiados.

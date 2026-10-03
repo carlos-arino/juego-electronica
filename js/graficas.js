@@ -35,7 +35,7 @@
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, wCss, hCss);
 
-    const izq = 34, der = 6, arr = 6, abj = 18;
+    const izq = 34, der = 6, arr = 14, abj = 18;
     const W = wCss - izq - der, H = hCss - arr - abj;
     const t = op.t;
     if (!t || !t.length) return;
@@ -78,7 +78,7 @@
     g.fillText('t (ms)', izq - 5, arr + H + 4);
     g.textBaseline = 'top';
     g.textAlign = 'left';
-    g.fillText('V', 4, 0);
+    g.fillText(op.unidad || 'V', 4, 0);
 
     // Líneas horizontales destacadas (±Vsat)
     for (const l of (op.lineas || [])) {
