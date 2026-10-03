@@ -240,6 +240,10 @@ kbd {
 .luz-led { fill: #ef4444; filter: blur(3px); }
 .luz-lampara { fill: #facc15; filter: blur(2px); }
 .luz-motor { fill: var(--accent); filter: blur(2px); }
+.progreso-pie { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.progreso-pie .sub { flex: 1 1 260px; margin: 0; font-size: 13px; }
+.progreso-botones { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn.peligro:hover { border-color: var(--bad); color: var(--bad); }
 .tema-niveles { margin-top: 14px; }
 .tema-niveles h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: baseline; gap: 8px; }
 .tema-num { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-weight: 700; }

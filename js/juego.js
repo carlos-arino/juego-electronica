@@ -21,14 +21,39 @@
   const esComponente = (p) => !p.fija && !P.TIPOS[p.tipo].cable && !P.TIPOS[p.tipo].carga && p.tipo !== 'tierra';
 
   /* ---------- Almacenamiento (opcional) ---------- */
+  const PREFIJO = 'circuitosAO.';
   const ALM = {
     leer(k, def) {
-      try { const v = localStorage.getItem('circuitosAO.' + k); return v === null ? def : JSON.parse(v); } catch (e) { return def; }
+      try { const v = localStorage.getItem(PREFIJO + k); return v === null ? def : JSON.parse(v); } catch (e) { return def; }
     },
     escribir(k, v) {
-      try { localStorage.setItem('circuitosAO.' + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ }
+      try { localStorage.setItem(PREFIJO + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ }
+    },
+    /* Todas las claves del juego (sin el prefijo), con su valor. */
+    todas() {
+      const datos = {};
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(PREFIJO)) datos[k.slice(PREFIJO.length)] = JSON.parse(localStorage.getItem(k));
+        }
+      } catch (e) { /* sin almacenamiento */ }
+      return datos;
+    },
+    /* Borra las claves del juego salvo las indicadas. */
+    borrar(conservar) {
+      try {
+        const claves = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(PREFIJO) && !conservar.includes(k.slice(PREFIJO.length))) claves.push(k);
+        }
+        for (const k of claves) localStorage.removeItem(k);
+      } catch (e) { /* sin almacenamiento */ }
     }
   };
+  // Preferencias de la interfaz que no forman parte del progreso
+  const PREFERENCIAS = ['tema', 'ayudaVista'];
 
   /* ---------- Estado ---------- */
   const E = {
@@ -1074,10 +1099,88 @@
     $('confTitulo').textContent = titulo;
     $('confTexto').textContent = texto;
     $('confAceptar').textContent = boton;
+    $('confCancelar').hidden = false;
     $('confAceptar').onclick = () => { cerrarModales(); accion(); };
     abrirModal('modalConfirmar');
     $('confAceptar').focus();
   }
+  /* Mensaje informativo con un solo botón (no cierra las demás ventanas). */
+  function avisar(titulo, texto) {
+    $('confTitulo').textContent = titulo;
+    $('confTexto').textContent = texto;
+    $('confAceptar').textContent = 'Aceptar';
+    $('confCancelar').hidden = true;
+    $('confAceptar').onclick = () => { $('modalConfirmar').hidden = true; };
+    abrirModal('modalConfirmar');
+    $('confAceptar').focus();
+  }
+
+  /* ---------- Progreso: exportar, importar y reiniciar ---------- */
+  const FORMATO = 'circuitos-electronica-progreso';
+  const resumenProgreso = (datos) => {
+    const prog = datos.progreso || {};
+    const niveles = Object.keys(prog).filter(id => prog[id] > 0).length;
+    const estrellas = Object.values(prog).reduce((s, n) => s + (+n || 0), 0);
+    const circuitos = Object.keys(datos).filter(k => k.startsWith('circuito.') && Array.isArray(datos[k]) && datos[k].some(p => !p.fija)).length;
+    return `${niveles} nivel${niveles === 1 ? '' : 'es'} superado${niveles === 1 ? '' : 's'}, ${estrellas} estrella${estrellas === 1 ? '' : 's'} y ${circuitos} circuito${circuitos === 1 ? '' : 's'} guardado${circuitos === 1 ? '' : 's'}`;
+  };
+
+  // Recarga el estado en memoria tras importar o reiniciar
+  function recargarProgreso() {
+    E.progreso = ALM.leer('progreso', {});
+    const idx = Math.max(0, NIVELES.findIndex(n => n.id === ALM.leer('nivel', null)));
+    cargarNivel(idx);
+  }
+
+  $('btnExportar').addEventListener('click', () => {
+    const datos = ALM.todas();
+    for (const k of PREFERENCIAS) delete datos[k];
+    const archivo = { formato: FORMATO, version: 1, fecha: new Date().toISOString(), datos };
+    const blob = new Blob([JSON.stringify(archivo, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const hoy = new Date(), dd = (n) => String(n).padStart(2, '0');
+    a.download = `progreso-circuitos-${hoy.getFullYear()}-${dd(hoy.getMonth() + 1)}-${dd(hoy.getDate())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  $('btnImportar').addEventListener('click', () => { $('archivoImportar').value = ''; $('archivoImportar').click(); });
+  $('archivoImportar').addEventListener('change', () => {
+    const f = $('archivoImportar').files[0];
+    if (!f) return;
+    const lector = new FileReader();
+    lector.onload = () => {
+      let archivo;
+      try { archivo = JSON.parse(lector.result); } catch (e) { archivo = null; }
+      if (!archivo || archivo.formato !== FORMATO || typeof archivo.datos !== 'object' || !archivo.datos) {
+        avisar('Archivo no válido', 'Ese archivo no es un progreso exportado desde este juego.');
+        return;
+      }
+      const datos = archivo.datos;
+      const fecha = archivo.fecha ? new Date(archivo.fecha).toLocaleString('es-ES') : 'fecha desconocida';
+      confirmar('¿Importar el progreso?',
+        `El archivo (${fecha}) contiene ${resumenProgreso(datos)}. Sustituirá el progreso y los circuitos de este navegador.`,
+        'Importar', () => {
+          ALM.borrar(PREFERENCIAS);
+          for (const [k, v] of Object.entries(datos)) if (!PREFERENCIAS.includes(k)) ALM.escribir(k, v);
+          recargarProgreso();
+        });
+    };
+    lector.readAsText(f);
+  });
+
+  $('btnReiniciar').addEventListener('click', () => {
+    confirmar('¿Reiniciar el progreso?',
+      `Se borrarán de este navegador ${resumenProgreso(ALM.todas())}. No se puede deshacer: si quieres conservarlos, expórtalos antes.`,
+      'Reiniciar', () => {
+        ALM.borrar(PREFERENCIAS);
+        E.progreso = {};
+        cargarNivel(0);
+      });
+  });
   $('btnAyuda').addEventListener('click', () => abrirModal('modalAyuda'));
   $('btnTema').addEventListener('click', () => {
     const html = document.documentElement;

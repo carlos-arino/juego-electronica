@@ -15,7 +15,11 @@ Enlaces útiles para clase:
 - `index.html?nivel=1.2` o `index.html?nivel=puente`: abre directamente un nivel, por su número o por su identificador.
 - `index.html?nivel=puente&solucion`: abre el nivel con la solución ya montada.
 
-El progreso (estrellas) y el circuito de cada nivel se guardan en el navegador de cada alumno.
+El progreso (estrellas) y el circuito de cada nivel se guardan automáticamente en el navegador (`localStorage`). Se conservan al cerrar y volver a abrir, pero son de ese navegador y de esa forma de abrir el juego (archivo local, servidor o web). En la ventana **Niveles** hay tres botones:
+
+- **Exportar progreso**: descarga un archivo `progreso-circuitos-AAAA-MM-DD.json` con las estrellas y los circuitos.
+- **Importar progreso**: carga un archivo exportado y sustituye el progreso de este navegador. Sirve para llevarlo de un ordenador a otro.
+- **Reiniciar progreso**: borra las estrellas y los circuitos de este navegador (útil en ordenadores compartidos). Las preferencias (tema claro u oscuro) se conservan.
 
 ## Temas y niveles
 

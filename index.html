@@ -110,6 +110,15 @@
     <h2>Niveles</h2>
     <p class="sub">Cada nivel trabaja un montaje de un tema de la asignatura. Las estrellas: <b>★</b> conseguido · <b>★★</b> sin usar más componentes de los necesarios · <b>★★★</b> además, sin avisos (ningún AO saturado ni cables sueltos).</p>
     <div id="rejillaNiveles"></div>
+    <div class="progreso-pie">
+      <div class="sub">El progreso y los circuitos se guardan en este navegador. Para llevarlos a otro ordenador, expórtalos a un archivo e impórtalos allí.</div>
+      <div class="progreso-botones">
+        <button class="btn" id="btnExportar" title="Guardar las estrellas y los circuitos en un archivo">⭳ Exportar progreso</button>
+        <button class="btn" id="btnImportar" title="Cargar el progreso desde un archivo exportado">⭱ Importar progreso</button>
+        <button class="btn peligro" id="btnReiniciar" title="Borrar las estrellas y los circuitos de este navegador">Reiniciar progreso</button>
+      </div>
+      <input type="file" id="archivoImportar" accept=".json,application/json" hidden>
+    </div>
   </div>
 </div>
 
@@ -173,7 +182,7 @@
     <h2 id="confTitulo"></h2>
     <p id="confTexto"></p>
     <div class="modal-pie">
-      <button class="btn" data-cerrar>Cancelar</button>
+      <button class="btn" data-cerrar id="confCancelar">Cancelar</button>
       <button class="btn primario" id="confAceptar">Aceptar</button>
     </div>
   </div>
