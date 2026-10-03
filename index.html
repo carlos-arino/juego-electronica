@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circuitos con AO</title>
+<meta name="description" content="Juego de construcción de circuitos con amplificadores operacionales lineales (Electrónica, Tema 6).">
+<link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="marca">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 4 L6 28 L28 16 Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 10h4M11 8v4M9 22h4" stroke="currentColor" stroke-width="2"/></svg>
+    <div>
+      <div class="marca-tit">Circuitos con AO</div>
+      <div class="marca-sub">Electrónica · Tema 6 · Aplicaciones lineales</div>
+    </div>
+  </div>
+  <div class="nivel-actual">
+    <button class="btn ghost" id="btnAnterior" title="Nivel anterior" aria-label="Nivel anterior">‹</button>
+    <button class="nivel-nombre" id="btnNiveles" title="Elegir nivel">
+      <span class="num" id="nivelNum">1</span>
+      <span class="tit" id="nivelTitulo">—</span>
+      <span class="estrellas" id="nivelEstrellas"></span>
+    </button>
+    <button class="btn ghost" id="btnSiguiente" title="Nivel siguiente" aria-label="Nivel siguiente">›</button>
+  </div>
+  <div class="acciones">
+    <button class="btn" id="btnDeshacer" title="Deshacer (Ctrl+Z)">↶ Deshacer</button>
+    <button class="btn" id="btnRehacer" title="Rehacer (Ctrl+Y)">↷</button>
+    <button class="btn" id="btnVaciar" title="Quitar todas las piezas">Vaciar</button>
+    <button class="btn" id="btnPista">Pista</button>
+    <button class="btn" id="btnSolucion">Solución</button>
+    <button class="btn" id="btnAyuda" title="Cómo se juega">?</button>
+    <button class="btn" id="btnTema" title="Tema claro/oscuro" aria-label="Cambiar tema">◐</button>
+  </div>
+</header>
+
+<main class="juego">
+  <aside class="paleta" id="paleta">
+    <div class="grupo-tit">Herramientas</div>
+    <div class="herramientas" id="herramientas"></div>
+    <div class="grupo-tit">Piezas</div>
+    <div class="piezas" id="piezas"></div>
+    <div class="propiedades" id="propiedades" hidden></div>
+  </aside>
+
+  <section class="centro">
+    <div class="objetivo">
+      <div class="obj-izq">
+        <div class="kicker" id="nivelConcepto"></div>
+        <div class="formula" id="objetivoFormula"></div>
+      </div>
+      <div class="medidor" id="medidor">
+        <div class="medidor-num"><span id="coincidencia">0</span><small>%</small></div>
+        <div class="medidor-lbl">coincidencia</div>
+        <div class="medidor-barra"><div id="coincidenciaBarra"></div></div>
+      </div>
+    </div>
+    <div class="tablero-wrap" id="tableroWrap">
+      <svg id="tablero" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="estado" id="estado">
+      <span id="estadoTexto">Elige una pieza a la izquierda y haz clic en el tablero.</span>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <section class="tarjeta enunciado">
+      <p id="enunciado"></p>
+      <div class="pista" id="pista" hidden></div>
+      <div class="libre" id="libreConfig" hidden></div>
+    </section>
+
+    <section class="tarjeta">
+      <div class="graf-cab">
+        <h3>Entradas</h3>
+        <div class="leyenda" id="leyendaEntradas"></div>
+      </div>
+      <canvas id="grafEntradas" height="150"></canvas>
+      <div class="senales" id="textoEntradas"></div>
+    </section>
+
+    <section class="tarjeta">
+      <div class="graf-cab">
+        <h3>Salida</h3>
+        <div class="leyenda" id="leyendaSalida"></div>
+      </div>
+      <canvas id="grafSalida" height="180"></canvas>
+      <div class="tiempo">
+        <button class="btn icono" id="btnPlay" title="Animar (Espacio)" aria-label="Animar">▶</button>
+        <input type="range" id="cursor" min="0" max="499" value="0" aria-label="Instante de tiempo">
+        <span class="t-lbl" id="tLbl">t = 0 ms</span>
+      </div>
+      <label class="check"><input type="checkbox" id="chkColor" checked> Colorear los cables según su tensión</label>
+    </section>
+
+    <section class="tarjeta avisos-tarjeta">
+      <h3>Diagnóstico</h3>
+      <ul class="avisos" id="avisos"></ul>
+    </section>
+  </aside>
+</main>
+
+<!-- Selector de niveles -->
+<div class="modal" id="modalNiveles" hidden>
+  <div class="modal-caja ancha">
+    <button class="cerrar" data-cerrar aria-label="Cerrar">×</button>
+    <h2>Niveles</h2>
+    <p class="sub">Cada nivel trabaja un montaje del tema. Las estrellas: <b>★</b> conseguido · <b>★★</b> sin usar más componentes de los necesarios · <b>★★★</b> además, sin avisos (ningún AO saturado ni cables sueltos).</p>
+    <div class="rejilla-niveles" id="rejillaNiveles"></div>
+  </div>
+</div>
+
+<!-- Ayuda -->
+<div class="modal" id="modalAyuda" hidden>
+  <div class="modal-caja">
+    <button class="cerrar" data-cerrar aria-label="Cerrar">×</button>
+    <h2>Cómo se juega</h2>
+    <p>Construye un circuito entre las <b>entradas</b> (izquierda) y la <b>salida</b> (derecha) para que la salida real <span class="sw sw-real"></span> coincida con la salida objetivo <span class="sw sw-obj"></span>. El nivel se supera con un 98 % de coincidencia.</p>
+    <div class="ayuda-cols">
+      <div>
+        <h4>Ratón</h4>
+        <ul>
+          <li><b>Clic</b>: colocar la pieza elegida.</li>
+          <li><b>Clic derecho</b>: girar la pieza (o la que vas a colocar).</li>
+          <li><b>Lápiz</b>: arrastra para dibujar cables; pone solo rectos, codos y nudos.</li>
+          <li><b>Seleccionar</b>: clic para ver y cambiar el valor de una pieza; arrastra para moverla.</li>
+          <li><b>Sonda</b>: clic en un cable para ver su tensión en la gráfica.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Teclado</h4>
+        <ul>
+          <li><kbd>R</kbd> girar · <kbd>M</kbd> intercambiar + y − del AO</li>
+          <li><kbd>Supr</kbd> borrar la pieza seleccionada</li>
+          <li><kbd>+</kbd>/<kbd>−</kbd> siguiente valor normalizado (E12)</li>
+          <li><kbd>V</kbd> seleccionar · <kbd>W</kbd> lápiz · <kbd>E</kbd> borrar · <kbd>P</kbd> sonda</li>
+          <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> deshacer · <kbd>Espacio</kbd> animar · <kbd>Esc</kbd> soltar herramienta</li>
+        </ul>
+      </div>
+    </div>
+    <h4>El modelo</h4>
+    <p>Los AO son ideales (ganancia infinita, sin corriente de entrada, impedancia de salida nula) y se alimentan a ±12 V, así que su salida no puede pasar de <b>±12 V</b>. Con realimentación negativa el AO lleva su salida a la tensión que hace <b>v<sup>+</sup> = v<sup>−</sup></b>; con realimentación positiva o sin realimentación, la salida se va a ±12 V. Las fuentes de un terminal están referidas a tierra.</p>
+    <div class="modal-pie"><button class="btn primario" data-cerrar>Empezar</button></div>
+  </div>
+</div>
+
+<!-- Victoria -->
+<div class="modal" id="modalVictoria" hidden>
+  <div class="modal-caja estrecha victoria">
+    <div class="vic-estrellas" id="vicEstrellas"></div>
+    <h2>¡Conseguido!</h2>
+    <p id="vicTexto"></p>
+    <div class="modal-pie">
+      <button class="btn" data-cerrar>Seguir mejorando</button>
+      <button class="btn primario" id="btnVicSiguiente">Siguiente nivel ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmación -->
+<div class="modal" id="modalConfirmar" hidden>
+  <div class="modal-caja estrecha">
+    <h2 id="confTitulo"></h2>
+    <p id="confTexto"></p>
+    <div class="modal-pie">
+      <button class="btn" data-cerrar>Cancelar</button>
+      <button class="btn primario" id="confAceptar">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/piezas.js"></script>
+<script src="js/simulador.js"></script>
+<script src="js/tablero.js"></script>
+<script src="js/niveles.js"></script>
+<script src="js/dibujo.js"></script>
+<script src="js/graficas.js"></script>
+<script src="js/juego.js"></script>
+</body>
+</html>
