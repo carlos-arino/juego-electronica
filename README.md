@@ -2,17 +2,21 @@
 
 Juego de construcción de circuitos para la asignatura de Electrónica. El alumnado monta un circuito con piezas sobre un tablero para que la salida real (una tensión o la corriente de una carga) coincida con un objetivo dado. Hay 31 niveles en cinco temas y un laboratorio libre.
 
+**Jugar en línea: <https://carlos-arino.github.io/juego-electronica/>**
+
 ## Cómo abrirlo
 
-Abre `index.html` en un navegador moderno. No necesita servidor ni conexión a internet. Si lo prefieres, también puedes servirlo en local:
+La forma más sencilla es usar la versión publicada: <https://carlos-arino.github.io/juego-electronica/>. Funciona en cualquier navegador moderno, sin instalar nada.
+
+También se puede usar sin conexión: descarga el repositorio y abre `index.html`. No necesita servidor. Si lo prefieres, puedes servirlo en local:
 
 ```bash
 python -m http.server 8765
 ```
 
-Enlaces útiles para clase:
+Enlaces útiles para clase (en la web o en local):
 
-- `index.html?nivel=1.2` o `index.html?nivel=puente`: abre directamente un nivel, por su número o por su identificador.
+- `https://carlos-arino.github.io/juego-electronica/?nivel=1.2` o `index.html?nivel=1.2` o `index.html?nivel=puente`: abre directamente un nivel, por su número o por su identificador.
 - `index.html?nivel=puente&solucion`: abre el nivel con la solución ya montada.
 
 El progreso (estrellas) y el circuito de cada nivel se guardan automáticamente en el navegador (`localStorage`). Se conservan al cerrar y volver a abrir, pero son de ese navegador y de esa forma de abrir el juego (archivo local, servidor o web). En la ventana **Niveles** hay tres botones:
@@ -98,3 +102,9 @@ node test/test.js
 ```
 
 Comprueba que la solución de referencia de cada uno de los 31 niveles da al menos un 99 % de coincidencia, sin errores ni cables sueltos. También comprueba 18 errores típicos, entre ellos: el diodo al revés, un puente con un diodo abierto, el relé sin diodo volante, un MOSFET que no es de nivel lógico, la base del PNP al aire, el LED sin resistencia, el Schmitt sin histéresis y el AO con + y − intercambiados.
+
+## Licencia
+
+© 2026 Carlos Ariño. Este juego se distribuye con la licencia [Creative Commons Atribución 4.0 Internacional (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/deed.es). El texto completo está en [LICENSE](LICENSE).
+
+Puedes copiarlo, distribuirlo, adaptarlo y usarlo con cualquier fin, también comercial, siempre que reconozcas la autoría, enlaces la licencia e indiques si has hecho cambios.
