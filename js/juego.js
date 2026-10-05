@@ -20,6 +20,16 @@
      conector ni carga dada por el enunciado. */
   const esComponente = (p) => !p.fija && !P.TIPOS[p.tipo].cable && !P.TIPOS[p.tipo].carga && p.tipo !== 'tierra';
 
+  /* La solución se desbloquea tras colocar, quitar o cambiar en el tablero
+     unos cuantos elementos (componentes y casillas de cable): una vez y media
+     los de la solución, y al menos 6. */
+  const ESFUERZO_FACTOR = 2, ESFUERZO_MIN = 6;
+  const esElemento = (p) => !p.fija && !P.TIPOS[p.tipo].carga;
+  /* El lápiz sustituye la pieza de cada casilla que toca, así que los cables
+     se identifican por su casilla y su forma; los demás, por su id. */
+  const huellas = (piezas) => new Map(piezas.filter(esElemento).map(p =>
+    P.TIPOS[p.tipo].cable ? ['c' + p.x + ',' + p.y, p.tipo + p.r + (p.m ? 'm' : '')] : ['p' + p.id, '']));
+
   /* ---------- Almacenamiento (opcional) ---------- */
   const PREFIJO = 'circuitosAO.';
   const ALM = {
@@ -64,6 +74,7 @@
     cursor: 0, anim: false, ultimoT: 0,
     ganado: false, ayuda: false, interaccion: false,
     progreso: ALM.leer('progreso', {}),
+    esfuerzo: ALM.leer('esfuerzo', {}), huellaPrev: null, tamSolucion: 0,
     colores: {}
   };
 
@@ -154,6 +165,14 @@
     E.hist = []; E.rehacer = []; E.sondas = []; E.sel = null;
     E.ayuda = false; E.ganado = false; E.interaccion = false; E.mejorSesion = 0; E.cursor = 0;
     E.par = nv.solucion ? nv.solucion.filter(c => OPS_COMPONENTE.includes(c[0]) || (c[0] === 'p' && !P.TIPOS[c[1]].carga)).length : Infinity;
+    E.huellaPrev = null;
+    E.tamSolucion = 0;
+    if (nv.solucion) {
+      const t = new window.Tablero(COLS, FILAS);
+      for (const c of N.conectores(nv)) t.colocar(c);
+      N.aplicarSolucion(t, nv.solucion, nv);
+      E.tamSolucion = t.piezas.filter(esElemento).length;
+    }
 
     $('nivelNum').textContent = nv.numero;
     $('nivelTitulo').textContent = nv.titulo;
@@ -163,7 +182,6 @@
     $('pista').hidden = true;
     $('pista').innerHTML = nv.pista ? '<b>Pista.</b> ' + nv.pista : '';
     $('btnPista').disabled = !nv.pista;
-    $('btnSolucion').disabled = !nv.solucion;
     $('libreConfig').hidden = !nv.libre;
     $('tarjetaEntradas').hidden = !nv.entradas.length;
     $('tituloSalida').textContent = medidaCorriente() ? 'Corriente' : 'Salida';
@@ -204,14 +222,14 @@
     E.rehacer.push(instantanea());
     E.tab.cargar(JSON.parse(E.hist.pop()));
     E.sel = null;
-    cambio(true);
+    cambio(true, false);
   }
   function rehacerAccion() {
     if (!E.rehacer.length) return;
     E.hist.push(instantanea());
     E.tab.cargar(JSON.parse(E.rehacer.pop()));
     E.sel = null;
-    cambio(true);
+    cambio(true, false);
   }
 
   /* ---------- Simulación ---------- */
@@ -232,9 +250,11 @@
     for (const s of E.sondas) s.nodo = E.circ.nudoDe(s.pid, s.n);
   }
 
-  function cambio(interaccion) {
+  /* contar: falso al deshacer o rehacer, para que no sume esfuerzo. */
+  function cambio(interaccion, contar = interaccion) {
     if (interaccion) E.interaccion = true;
     if (E.sel && !E.tab.piezas.some(p => p.id === E.sel)) E.sel = null;
+    contarEsfuerzo(contar);
     simular();
     dibujarTablero();
     dibujarGraficas();
@@ -246,6 +266,46 @@
   }
 
   const avisosReales = () => E.res.avisos.filter(a => a.clase !== 'info');
+
+  /* ---------- Esfuerzo para desbloquear la solución ---------- */
+  const esfuerzoNecesario = () => Math.max(ESFUERZO_MIN, Math.ceil(ESFUERZO_FACTOR * E.tamSolucion));
+  const solucionLibre = () => E.esfuerzo[E.nivel.id] >= esfuerzoNecesario() || E.progreso[E.nivel.id] > 0;
+
+  /* Suma los elementos colocados, quitados o cambiados desde el último cambio. */
+  function contarEsfuerzo(contar) {
+    const ahora = huellas(E.tab.piezas), antes = E.huellaPrev;
+    if (contar && antes && E.nivel.solucion) {
+      let n = 0;
+      for (const [k, h] of ahora) if (antes.get(k) !== h) n++;
+      for (const k of antes.keys()) if (!ahora.has(k)) n++;
+      if (n) {
+        const bloqueada = !solucionLibre();
+        E.esfuerzo[E.nivel.id] = Math.min(esfuerzoNecesario(), (E.esfuerzo[E.nivel.id] || 0) + n);
+        ALM.escribir('esfuerzo', E.esfuerzo);
+        if (bloqueada && solucionLibre()) {
+          const b = $('btnSolucion');
+          b.classList.remove('desbloqueado'); void b.offsetWidth; b.classList.add('desbloqueado');
+        }
+      }
+    }
+    E.huellaPrev = ahora;
+    botonSolucion();
+  }
+
+  function botonSolucion() {
+    const b = $('btnSolucion');
+    b.disabled = !E.nivel.solucion;
+    const libre = !E.nivel.solucion || solucionLibre();
+    b.classList.toggle('bloqueado', !libre);
+    if (libre) {
+      b.style.removeProperty('--avance');
+      b.title = E.nivel.solucion ? 'Ver la solución de referencia' : '';
+      return;
+    }
+    const hecho = E.esfuerzo[E.nivel.id] || 0, falta = esfuerzoNecesario();
+    b.style.setProperty('--avance', (100 * hecho / falta).toFixed(1) + '%');
+    b.title = `Se desbloquea al colocar o quitar ${falta} elementos, cables incluidos (llevas ${hecho})`;
+  }
 
   /* ---------- Victoria ---------- */
   function comprobarVictoria() {
@@ -266,6 +326,7 @@
       const previas = E.progreso[E.nivel.id] || 0;
       if (est > previas) { E.progreso[E.nivel.id] = est; ALM.escribir('progreso', E.progreso); }
       actualizarEstrellasCabecera();
+      botonSolucion();
       // Se celebra la primera vez y cada vez que se mejora en esta visita al nivel
       if (est <= E.mejorSesion) { E.ganado = ganado; return; }
       E.mejorSesion = est;
@@ -1084,6 +1145,11 @@
   $('btnPista').addEventListener('click', () => { $('pista').hidden = !$('pista').hidden; });
   $('btnSolucion').addEventListener('click', () => {
     if (!E.nivel.solucion) return;
+    if (!solucionLibre()) {
+      const hecho = E.esfuerzo[E.nivel.id] || 0, falta = esfuerzoNecesario() - hecho;
+      avisar('Todavía no', `Sigue probando: la solución se desbloquea cuando hayas colocado o quitado ${falta} elemento${falta === 1 ? '' : 's'} más en el tablero, cables incluidos. El botón se va llenando a medida que avanzas.` + (E.nivel.pista ? ' Si te atascas, mira la pista.' : ''));
+      return;
+    }
     confirmar('¿Ver la solución?', 'Sustituirá tu circuito (puedes recuperarlo con Deshacer). Si superas el nivel partiendo de ella, solo obtendrás una estrella.', 'Ver solución', () => {
       empujar(instantanea());
       E.tab.cargar(E.tab.serializar().filter(p => p.fija));
@@ -1128,6 +1194,7 @@
   // Recarga el estado en memoria tras importar o reiniciar
   function recargarProgreso() {
     E.progreso = ALM.leer('progreso', {});
+    E.esfuerzo = ALM.leer('esfuerzo', {});
     const idx = Math.max(0, NIVELES.findIndex(n => n.id === ALM.leer('nivel', null)));
     cargarNivel(idx);
   }
@@ -1177,7 +1244,7 @@
       `Se borrarán de este navegador ${resumenProgreso(ALM.todas())}. No se puede deshacer: si quieres conservarlos, expórtalos antes.`,
       'Reiniciar', () => {
         ALM.borrar(PREFERENCIAS);
-        E.progreso = {};
+        E.progreso = {}; E.esfuerzo = {};
         cargarNivel(0);
       });
   });

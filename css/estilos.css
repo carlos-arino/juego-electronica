@@ -121,6 +121,19 @@ kbd {
 .btn.activo { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .btn.icono { width: 34px; padding: 6px 0; text-align: center; }
 
+/* Botón Solución bloqueado: se va llenando con lo que coloca o quita el alumno */
+@property --avance { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+.btn.bloqueado {
+  background: linear-gradient(90deg, var(--accent-soft) var(--avance), var(--surface) var(--avance));
+  color: var(--muted); border-style: dashed; cursor: help;
+  transition: --avance .4s ease-out;
+}
+.btn.desbloqueado { animation: desbloqueo .8s ease-out 2; }
+@keyframes desbloqueo {
+  from { box-shadow: 0 0 0 0 var(--accent); }
+  to { box-shadow: 0 0 0 9px transparent; }
+}
+
 /* ---------- Distribución ---------- */
 .juego {
   flex: 1 1 auto;
