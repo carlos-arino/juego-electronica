@@ -749,7 +749,7 @@
     },
     {
       id: 'limitador',
-      titulo: 'Limitador con Zener',
+      titulo: 'Limitador inversor',
       concepto: 'Zener en la realimentación del inversor',
       enunciado: `Amplifica por −5, pero sin que la salida pase de ±5,4 V. Dos Zener de 4,7 V en oposición, en paralelo con la resistencia de realimentación, no conducen mientras |v<sub>o</sub>| < V<sub>Z</sub> + V<sub>γ</sub>. Cuando se alcanza ese valor, fijan la salida.`,
       objetivoHTML: `${vo} = −5·${v1}, limitada a ±5,4 V`,
@@ -767,6 +767,74 @@
         ['w', [12, 6], [23, 6]],
         ['p', 'zener', 11, 1, 2], ['p', 'zener', 12, 1, 0],
         ['w', [7, 3], [7, 1], [11, 1]], ['w', [12, 1], [14, 1], [14, 3]]
+      ]
+    },
+    {
+      id: 'limitadornoinv',
+      titulo: 'Limitador no inversor',
+      concepto: 'Zener en la entrada + del no inversor',
+      enunciado: `Amplifica por +2, pero sin que la salida pase de ±10,8 V. Aquí los Zener no van en la realimentación: dos Zener de 4,7 V en oposición, de la entrada + a tierra, limitan v<sup>+</sup> a ±(V<sub>Z</sub> + V<sub>γ</sub>) = ±5,4 V. Una resistencia en serie con la señal absorbe el resto, y después el no inversor amplifica.`,
+      objetivoHTML: `${vo} = 2·${v1}, limitada a ±10,8 V`,
+      entradas: [{ nombre: 'v₁', f: Senal.seno(8, 1), texto: '8·sen(2π·1 kHz·t) V' }],
+      objetivo: puntual(([a]) => 2 * clamp(a, -5.4, 5.4)),
+      tmax: 2,
+      aoNoLineal: true,
+      piezas: [...CABLES, 'resistencia', ZENER(4.7), 'ao', 'tierra'],
+      pista: 'Resistencia de 1 kΩ entre la entrada y la patilla +. De la patilla + a tierra, dos Zener en serie enfrentados (cátodo–ánodo–ánodo–cátodo). No inversor de ganancia 1 + R<sub>2</sub>/R<sub>1</sub> = 2: R<sub>1</sub> = R<sub>2</sub> = 10 kΩ (R<sub>1</sub> de la patilla − a tierra y R<sub>2</sub> a la salida).',
+      solucion: [
+        ['ao', 12, 5, 0, true],
+        ['R', 6, 5, 0, 1e3], ['w', [0, 6], [2, 6], [2, 5], [6, 5]], ['w', [6, 5], [12, 5]],
+        ['p', 'zener', 9, 6, 3], ['p', 'zener', 9, 7, 1],
+        ['w', [9, 5], [9, 6]], ['w', [9, 7], [9, 9]], ['gnd', 9, 9],
+        ['w', [12, 7], [10, 7], [10, 8]], ['R', 10, 8, 1, 10e3], ['w', [10, 8], [10, 10]], ['gnd', 10, 10],
+        ['w', [11, 7], [11, 11], [14, 11]], ['R', 14, 11, 0, 10e3],
+        ['w', [14, 11], [16, 11], [16, 6]],
+        ['w', [14, 6], [23, 6]]
+      ]
+    },
+    {
+      id: 'zonamuertanoinv',
+      titulo: 'Zona muerta no inversora',
+      concepto: 'Zener en serie con la entrada + del no inversor',
+      enunciado: `La salida debe ser nula mientras |v<sub>1</sub>| < 5 V. Fuera de esa zona, los Zener restan 5 V a la entrada y el no inversor amplifica el resto. Elige la ganancia para que v<sub>o</sub> = 10 V cuando v<sub>1</sub> = 10 V. Dos Zener de 4,3 V en serie y opuestos solo conducen cuando su tensión supera V<sub>Z</sub> + V<sub>γ</sub> = 5 V.`,
+      objetivoHTML: `${vo} = 2·(${v1} ∓ 5 V) si |${v1}| > 5 V; 0 si no`,
+      entradas: [{ nombre: 'v₁', f: Senal.triangular(10, 1), texto: 'triangular de 10 V de pico, 1 kHz' }],
+      objetivo: puntual(([a]) => Math.abs(a) > 5 ? 2 * (a - Math.sign(a) * 5) : 0),
+      tmax: 2,
+      aoNoLineal: true,
+      piezas: [...CABLES, 'resistencia', ZENER(4.3), 'ao', 'tierra'],
+      pista: 'Los dos Zener en serie y enfrentados (ánodo–cátodo–cátodo–ánodo) entre la entrada y la patilla +, y una resistencia de 10 kΩ de la patilla + a tierra: sin ella, con los Zener cortados la entrada + quedaría al aire. 10 = (1 + R<sub>2</sub>/R<sub>1</sub>)(10 − 5) ⇒ R<sub>2</sub> = R<sub>1</sub> = 10 kΩ.',
+      solucion: [
+        ['ao', 12, 5, 0, true],
+        ['w', [0, 6], [2, 6], [2, 5], [5, 5]],
+        ['p', 'zener', 5, 5, 0], ['p', 'zener', 6, 5, 2], ['w', [6, 5], [12, 5]],
+        ['w', [9, 5], [9, 6]], ['R', 9, 6, 1, 10e3], ['w', [9, 6], [9, 8]], ['gnd', 9, 8],
+        ['w', [12, 7], [10, 7], [10, 8]], ['R', 10, 8, 1, 10e3], ['w', [10, 8], [10, 10]], ['gnd', 10, 10],
+        ['w', [11, 7], [11, 11], [14, 11]], ['R', 14, 11, 0, 10e3],
+        ['w', [14, 11], [16, 11], [16, 6]],
+        ['w', [14, 6], [23, 6]]
+      ]
+    },
+    {
+      id: 'zonamuertainv',
+      titulo: 'Zona muerta inversora',
+      concepto: 'Zener en serie con R<sub>1</sub> hacia la masa virtual',
+      enunciado: `La salida debe ser nula mientras |v<sub>1</sub>| < 4 V y, fuera de esa zona, valer −1,5·(v<sub>1</sub> ∓ 4 V). Pon dos Zener de 3,3 V en serie y opuestos delante de la R<sub>1</sub> de un inversor. Mientras no conducen no llega corriente a la masa virtual y la salida es nula. Cuando conducen, restan V<sub>Z</sub> + V<sub>γ</sub> a la entrada.`,
+      objetivoHTML: `${vo} = −1,5·(${v1} ∓ 4 V) si |${v1}| > 4 V; 0 si no`,
+      entradas: [{ nombre: 'v₁', f: Senal.triangular(10, 1), texto: 'triangular de 10 V de pico, 1 kHz' }],
+      objetivo: puntual(([a]) => Math.abs(a) > 4 ? -1.5 * (a - Math.sign(a) * 4) : 0),
+      tmax: 2,
+      aoNoLineal: true,
+      piezas: [...CABLES, 'resistencia', ZENER(3.3), 'ao', 'tierra'],
+      pista: 'V<sub>Z</sub> + V<sub>γ</sub> = 3,3 + 0,7 = 4 V. Entrada, Zener enfrentados (ánodo–cátodo–cátodo–ánodo) y R<sub>1</sub> = 10 kΩ en serie hasta la patilla −. R<sub>2</sub>/R<sub>1</sub> = 1,5 ⇒ R<sub>2</sub> = 15 kΩ de la patilla − a la salida. La patilla +, a tierra.',
+      solucion: [
+        ['ao', 12, 5],
+        ['w', [0, 6], [2, 6], [2, 5], [4, 5]],
+        ['p', 'zener', 4, 5, 0], ['p', 'zener', 5, 5, 2], ['w', [5, 5], [8, 5]],
+        ['R', 8, 5, 0, 10e3], ['w', [8, 5], [12, 5]],
+        ['w', [10, 5], [10, 3], [13, 3]], ['R', 13, 3, 0, 15e3], ['w', [13, 3], [16, 3], [16, 6]],
+        ['w', [12, 7], [11, 7], [11, 8]], ['gnd', 11, 8],
+        ['w', [14, 6], [23, 6]]
       ]
     },
     {

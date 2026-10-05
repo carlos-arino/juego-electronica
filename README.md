@@ -1,6 +1,6 @@
 # Circuitos de Electrónica
 
-Juego de construcción de circuitos para la asignatura de Electrónica. El alumnado monta un circuito con piezas sobre un tablero para que la salida real (una tensión o la corriente de una carga) coincida con un objetivo dado. Hay 31 niveles en cinco temas y un laboratorio libre.
+Juego de construcción de circuitos para la asignatura de Electrónica. El alumnado monta un circuito con piezas sobre un tablero para que la salida real (una tensión o la corriente de una carga) coincida con un objetivo dado. Hay 34 niveles en cinco temas y un laboratorio libre.
 
 **Jugar en línea: <https://carlos-arino.github.io/juego-electronica/>**
 
@@ -53,8 +53,11 @@ El progreso (estrellas) y el circuito de cada nivel se guardan automáticamente 
 | 7.1 | Comparador | ±12 V según v₁ > 2 V |
 | 7.2 | Disparador de Schmitt (entrada con ruido) | umbrales ±3 V |
 | 7.3 | Rectificador de precisión | vₒ = máx(v₁, 0) con 0,5 V de pico |
-| 7.4 | Limitador con Zener | −5·v₁ limitada a ±5,4 V |
-| 7.5 | Multivibrador astable (se puntúa el periodo) | T = 2 ms |
+| 7.4 | Limitador inversor (Zener en la realimentación) | −5·v₁ limitada a ±5,4 V |
+| 7.5 | Limitador no inversor (Zener en la entrada +) | 2·v₁ limitada a ±10,8 V |
+| 7.6 | Zona muerta no inversora | vₒ = 2·(v₁ ∓ 5 V) fuera de \|v₁\| < 5 V |
+| 7.7 | Zona muerta inversora | vₒ = −1,5·(v₁ ∓ 4 V) fuera de \|v₁\| < 4 V |
+| 7.8 | Multivibrador astable (se puntúa el periodo) | T = 2 ms |
 | Extra | Laboratorio libre: señales, función objetivo y parámetros configurables | |
 
 ## Mecánica
@@ -101,7 +104,7 @@ Para añadir niveles, edita `js/niveles.js`. Cada nivel define sus entradas, su 
 node test/test.js
 ```
 
-Comprueba que la solución de referencia de cada uno de los 31 niveles da al menos un 99 % de coincidencia, sin errores ni cables sueltos. También comprueba 20 errores típicos, entre ellos: el diodo al revés, un puente con un diodo abierto, un puente sin unir a tierra, el relé sin diodo volante, un MOSFET que no es de nivel lógico, la base del PNP al aire, el LED sin resistencia, el Schmitt sin histéresis y el AO con + y − intercambiados.
+Comprueba que la solución de referencia de cada uno de los 34 niveles da al menos un 99 % de coincidencia, sin errores ni cables sueltos. También comprueba 22 errores típicos, entre ellos: el diodo al revés, un puente con un diodo abierto, un puente sin unir a tierra, la zona muerta no inversora sin resistencia a masa, el relé sin diodo volante, un MOSFET que no es de nivel lógico, la base del PNP al aire, el LED sin resistencia, el Schmitt sin histéresis y el AO con + y − intercambiados.
 
 ## Licencia
 

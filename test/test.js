@@ -72,6 +72,8 @@ probar('motor con IRF530 (no es de nivel lógico)', 'motor', null, tab => { tab.
 probar('lado alto sin R_EB (base al aire)', 'ladoalto', null, tab => { const r = tab.piezas.filter(p => p.tipo === 'resistencia' && p.r === 1)[0]; tab.quitar(r.id); }, (c, t) => /al aire/.test(t));
 probar('comparador con las entradas cambiadas', 'comparador', null, tab => tab.espejo(tab.piezas.find(p => p.tipo === 'ao').id), falla);
 probar('Schmitt sin histéresis (R2 quitada)', 'schmitt', null, quitar('resistencia', p => p.valor === 30e3), falla);
+probar('limitador no inversor sin R en serie', 'limitadornoinv', nivel('limitadornoinv').solucion.map(c => c[0] === 'R' && c[1] === 6 ? ['w', [5, 5], [7, 5]] : c), null, (c, t) => /no tiene solución/.test(t));
+probar('zona muerta no inversora sin R a masa', 'zonamuertanoinv', nivel('zonamuertanoinv').solucion.filter(c => !((c[0] === 'R' || c[0] === 'gnd') && c[1] === 9) && !(c[0] === 'w' && c[1][0] === 9)), null, falla);
 probar('astable con C = 47 nF (periodo distinto)', 'astable', null, tab => { tab.piezas.find(p => p.tipo === 'condensador').valor = 47e-9; }, falla);
 probar('motor sin diodo volante', 'motor', null, quitar('diodo'), (c, t) => /ruptura/.test(t));
 // Niveles de diseño: un valor normalizado (E12) debe aprobar; uno muy alejado, no
