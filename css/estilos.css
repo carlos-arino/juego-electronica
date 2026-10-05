@@ -324,7 +324,9 @@ canvas { width: 100%; display: block; }
 .modal-caja li { margin: 3px 0; }
 .modal-caja .sub { color: var(--muted); margin-top: 0; }
 .cerrar { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 24px; cursor: pointer; color: var(--muted); }
-.modal-pie { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.modal-pie { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.modal-pie .creditos { flex: 1 1 auto; align-self: center; margin: 0; font-size: 13px; color: var(--muted); }
+.creditos a { color: var(--accent); }
 .ayuda-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .sw { display: inline-block; width: 18px; height: 0; vertical-align: middle; border-top: 3px solid; }
 .sw-real { border-color: var(--sig-real); }
