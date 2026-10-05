@@ -101,7 +101,7 @@ Para añadir niveles, edita `js/niveles.js`. Cada nivel define sus entradas, su 
 node test/test.js
 ```
 
-Comprueba que la solución de referencia de cada uno de los 31 niveles da al menos un 99 % de coincidencia, sin errores ni cables sueltos. También comprueba 18 errores típicos, entre ellos: el diodo al revés, un puente con un diodo abierto, el relé sin diodo volante, un MOSFET que no es de nivel lógico, la base del PNP al aire, el LED sin resistencia, el Schmitt sin histéresis y el AO con + y − intercambiados.
+Comprueba que la solución de referencia de cada uno de los 31 niveles da al menos un 99 % de coincidencia, sin errores ni cables sueltos. También comprueba 20 errores típicos, entre ellos: el diodo al revés, un puente con un diodo abierto, un puente sin unir a tierra, el relé sin diodo volante, un MOSFET que no es de nivel lógico, la base del PNP al aire, el LED sin resistencia, el Schmitt sin histéresis y el AO con + y − intercambiados.
 
 ## Licencia
 

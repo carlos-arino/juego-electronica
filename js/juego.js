@@ -181,7 +181,7 @@
     let h = nv.entradas.map(e => `<b>${e.nombre}</b>: ${e.texto}` +
       (e.Rs ? ` · resistencia interna ${P.formatearValor(e.Rs, 'Ω')}` : '') +
       (e.imax ? ` · máximo ${fmt(e.imax * 1e3, 0)} mA` : '')).join('<br>');
-    if (nv.RL) h += `<br><b>Carga</b> en la salida: R<sub>L</sub> = ${P.formatearValor(nv.RL, 'Ω')}`;
+    if (nv.RL) h += `<br><b>Carga</b> entre la salida y tierra: R<sub>L</sub> = ${P.formatearValor(nv.RL, 'Ω')}`;
     $('textoEntradas').innerHTML = h;
     $('objetivoFormula').innerHTML = '<span class="etq">Objetivo</span>' + nv.objetivoHTML;
   }
@@ -310,7 +310,7 @@
     h += grupos + etiquetas;
 
     // Extremos sueltos
-    for (const [x, y] of E.circ.sueltos) h += `<circle class="suelto" cx="${x * T}" cy="${y * T}" r="4.5"/>`;
+    for (const [x, y] of E.circ.sueltos.concat(E.circ.libres)) h += `<circle class="suelto" cx="${x * T}" cy="${y * T}" r="4.5"/>`;
 
     // Selección
     if (E.sel) {
@@ -367,7 +367,7 @@
       return Gr.escalaBonita(m * 1.05);
     };
     const salidaDibujo = () => {
-      const p = E.tab.piezas.find(q => q.tipo === 'salida');
+      const p = E.tab.piezas.find(q => P.TIPOS[q.tipo].salida);
       const yc = ((p ? p.y : 6 + N.DY) + 0.5) * T, x0 = COLS * T + 10;
       const escala = maxAbs(E.obj, r.ok ? r.salida : null);
       let c = traza(E.obj, x0, yc, escala, 'mini-obj');
@@ -694,7 +694,7 @@
         const kd = E.circ.disp.findIndex(d => d.id === p.id);
         if (p.tipo === 'resistencia' || p.tipo === 'condensador') s += ' ' + P.formatearValor(p.valor, t.unidad);
         if (p.tipo === 'entrada' || p.tipo === 'secundario') s = `<b>${p.tipo === 'secundario' ? 'Secundario' : 'Entrada'} ${E.nivel.entradas[p.k].nombre}</b>`;
-        if (p.tipo === 'salida') s = '<b>Salida v<sub>o</sub></b>';
+        if (t.salida) s = '<b>Salida v<sub>o</sub></b>' + (E.nivel.RL ? ` · carga R<sub>L</sub> = ${P.formatearValor(E.nivel.RL, 'Ω')} a tierra` : '');
         if (kd >= 0) s = textoDispositivo(kd);
         else if (p.tipo === 'ao') {
           const k = E.circ.aos.findIndex(a => a.id === p.id);
@@ -867,8 +867,8 @@
     } else if (p.tipo === 'entrada' || p.tipo === 'secundario') {
       const e = E.nivel.entradas[p.k];
       h += `<p class="nota">${e.nombre}: ${e.texto}${e.Rs ? '. Tiene una resistencia interna de ' + P.formatearValor(e.Rs, 'Ω') : ''}${e.imax ? '. Puede dar como máximo ' + fmt(e.imax * 1e3, 0) + ' mA' : ''}. Conector fijo del nivel.</p>`;
-    } else if (p.tipo === 'salida') {
-      h += `<p class="nota">Aquí se mide v<sub>o</sub>${E.nivel.RL ? ', con una carga de ' + P.formatearValor(E.nivel.RL, 'Ω') + ' a tierra' : ''}. Conector fijo del nivel.</p>`;
+    } else if (t.salida) {
+      h += `<p class="nota">Aquí se mide v<sub>o</sub>${E.nivel.RL ? ', con una carga de ' + P.formatearValor(E.nivel.RL, 'Ω') + ' a tierra. El terminal de 0 V está unido a tierra y puedes conectarle cables' : ''}. Conector fijo del nivel.</p>`;
     } else if (p.tipo === 'ao') {
       h += '<p class="nota">AO ideal alimentado a ±12 V. M intercambia las entradas + y −.</p>';
     }

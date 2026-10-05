@@ -168,14 +168,16 @@
     const GND = 'GND';
     uf.find(GND);
 
+    const opcionales = new Set();  // bordes de puertos que pueden quedar sin conectar
     for (const p of piezas) {
       for (const q of P.puertos(p)) {
         const k = P.claveBorde(q.cx, q.cy, q.d);
         uf.union(p.id + ':' + q.n, k);
         cuenta.set(k, (cuenta.get(k) || 0) + 1);
         posBorde.set(k, [q.cx + 0.5 + P.DX[q.d] * 0.5, q.cy + 0.5 + P.DY[q.d] * 0.5]);
+        if (q.gnd) uf.union(p.id + ':' + q.n, GND);
+        if (q.opcional) opcionales.add(k);
       }
-      if (p.tipo === 'tierra') uf.union(p.id + ':a', GND);
     }
 
     // Numeración de nudos (0 = tierra)
@@ -216,9 +218,9 @@
           R.push({ a: ni, b: nc, R: ent.Rs, id: p.id, interna: true });
         } else fuentes.push({ n: nc, m: 0, tipo: 'ent', k: p.k, id: p.id });
       } else if (t === 'secundario') fuentes.push({ n: nd('a'), m: nd('b'), tipo: 'ent', k: p.k, id: p.id });
-      else if (t === 'salida') {
+      else if (P.TIPOS[t].salida) {
         nudoSalida = nd('a');
-        if (nivel.RL > 0) R.push({ a: nudoSalida, b: 0, R: nivel.RL, id: p.id, interna: true });
+        if (nivel.RL > 0) R.push({ a: nudoSalida, b: 0, R: nivel.RL, id: p.id, interna: true, RL: true });
       } else if (NUM_RAMAS[t]) {
         const esQ = /npn|pnp|mos/.test(t);
         const nombre = esQ ? 'Q' + (++nQ) : 'D' + (++nD);
@@ -234,8 +236,9 @@
     };
 
     // Extremos sueltos
-    const sueltos = [];
-    for (const [k, n] of cuenta) if (n === 1) sueltos.push(posBorde.get(k));
+    // (los terminales opcionales sin conectar se marcan, pero no cuentan como sueltos)
+    const sueltos = [], libres = [];
+    for (const [k, n] of cuenta) if (n === 1) (opcionales.has(k) ? libres : sueltos).push(posBorde.get(k));
     for (const p of piezas) if (p.tipo === 'extremo') sueltos.push([p.x + 0.5, p.y + 0.5]);
 
     // Fuentes de tensión ideales (AO incluidos)
@@ -281,7 +284,35 @@
     if (nudoSalida < 0 && !nivel.sinSalida) errores.push({ txt: 'No hay conector de salida.' });
     else if (nudoSalida >= 0 && !alcanzado[nudoSalida]) avisos.push({ txt: 'La salida vo no está conectada a nada que fije su tensión.' });
 
-    return { N, R, C, L, fuentes: todas, aos, disp, nudoSalida, nudoDe, sueltos, avisos, errores, uf, indice };
+    // Secundario flotante sin ningún punto a tierra: la carga RL (de vo a
+    // tierra) no tiene camino de vuelta y vo se queda en 0 V.
+    if (nudoSalida >= 0 && nivel.RL > 0) {
+      const ady2 = Array.from({ length: N }, () => []);
+      const unir2 = (a, b) => { ady2[a].push(b); ady2[b].push(a); };
+      for (const r of R) if (!r.RL) unir2(r.a, r.b);
+      for (const l of L) unir2(l.a, l.b);
+      for (const c of C) unir2(c.a, c.b);
+      for (const f of todas) if (f.m) unir2(f.n, f.m);
+      for (const d of disp) {
+        const [n0, ...resto] = Object.values(d.nodos);
+        for (const n of resto) unir2(n0, n);
+      }
+      for (const f of fuentes) {
+        if (f.tipo !== 'ent' || !f.m) continue;
+        const isla = new Uint8Array(N);
+        const pila = [f.n];
+        isla[f.n] = 1;
+        while (pila.length) {
+          const u = pila.pop();
+          for (const v of ady2[u]) if (!isla[v]) { isla[v] = 1; pila.push(v); }
+        }
+        if (isla[nudoSalida] && !isla[0] && !todas.some(g => !g.m && isla[g.n])) {
+          avisos.push({ txt: 'Ningún punto del circuito del secundario está unido a tierra. La carga RL va de vo a tierra, así que su corriente no tiene por dónde volver al secundario y vo se queda en 0 V. Une a tierra el punto del circuito al que debe volver la corriente de la carga.', id: f.id });
+        }
+      }
+    }
+
+    return { N, R, C, L, fuentes: todas, aos, disp, nudoSalida, nudoDe, sueltos, libres, avisos, errores, uf, indice };
   }
 
   /* ---------- Simulación temporal ---------- */

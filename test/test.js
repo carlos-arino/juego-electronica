@@ -58,6 +58,9 @@ probar('no inversor con ganancia 30 (satura)', 'noinversor', null, tab => { tab.
 probar('salida del AO a tierra', 'seguidor', nivel('seguidor').solucion.concat([['gnd', 12, 7], ['w', [12, 6], [12, 7]]]), null, (c, t) => /Cortocircuito/.test(t));
 probar('media onda con el diodo al revés', 'mediaonda', null, tab => tab.girar(tab.piezas.find(p => p.tipo === 'diodo').id) && tab.girar(tab.piezas.find(p => p.tipo === 'diodo').id), falla);
 probar('puente con un diodo abierto (media onda)', 'puente', null, quitar('diodo'), falla);
+const sinGnd = nivel('puente').solucion.filter(c => c[0] !== 'gnd' && !(c[0] === 'w' && c[1][0] === 9));
+probar('puente unido al terminal de 0 V de la salida', 'puente', sinGnd.concat([['w', [9, 9], [9, 11], [21, 11], [21, 8], [23, 8]]]), null, (c, t) => c > 0.99 && !t);
+probar('puente sin unir a tierra (RL sin retorno)', 'puente', nivel('puente').solucion.filter(c => c[0] !== 'gnd' && !(c[0] === 'w' && c[1][0] === 9)), null, (c, t) => falla(c) && /tierra/.test(t));
 probar('regulador Zener con R = 1 kΩ (se corta)', 'reguladorzener', null, tab => { tab.piezas.find(p => p.tipo === 'resistencia').valor = 1e3; }, falla);
 probar('regulador Zener con R = 47 Ω (potencia)', 'reguladorzener', null, tab => { tab.piezas.find(p => p.tipo === 'resistencia').valor = 47; }, (c, t) => /disipa/.test(t));
 probar('emisor común con RB = 10 kΩ (satura antes)', 'ec', null, tab => { tab.piezas.find(p => p.tipo === 'resistencia' && p.valor === 20e3).valor = 10e3; }, falla);

@@ -353,14 +353,14 @@
       id: 'puente',
       titulo: 'Rectificador en puente',
       concepto: 'Onda completa · dos diodos en serie',
-      enunciado: `Ahora la señal viene del <b>secundario de un transformador</b>, que es una fuente flotante: ninguno de sus dos terminales está a tierra. Con cuatro diodos en puente se aprovechan los dos semiciclos. En cada uno conducen dos diodos en serie, así que la salida pierde 2·V<sub>γ</sub>.`,
+      enunciado: `Ahora la señal viene del <b>secundario de un transformador</b>, que es una fuente flotante: ninguno de sus dos terminales está a tierra. Con cuatro diodos en puente se aprovechan los dos semiciclos. En cada uno conducen dos diodos en serie, así que la salida pierde 2·V<sub>γ</sub>. La carga R<sub>L</sub> está entre ${vo} y <b>tierra</b>: su corriente vuelve por tierra, así que el puente también tiene que estar unido a tierra para cerrar el circuito.`,
       objetivoHTML: `${vo} = máx(|${v1}| − 1,4 V, 0)`,
       entradas: [{ nombre: 'v₁', tipo: 'flotante', f: Senal.seno(12, 0.05), texto: 'secundario de 12 V de pico, 50 Hz (flotante)' }],
       RL: 1e3,
       objetivo: puntual(([a]) => Math.max(Math.abs(a) - 1.4, 0)),
       tmax: 40,
       piezas: [...CABLES, 'diodo', 'tierra'],
-      pista: 'Une un terminal del secundario a los diodos D1 (hacia la salida) y D3 (desde tierra), y el otro a D2 y D4 del mismo modo. Los cátodos de D1 y D2 van a la salida; los ánodos de D3 y D4, a tierra. Para cruzar un cable sin unirlo, pasa por encima en línea recta.',
+      pista: 'La corriente sale del puente por v<sub>o</sub>, atraviesa R<sub>L</sub> y vuelve por tierra, así que el puente tiene que estar unido a tierra: con una pieza de tierra o con un cable al terminal de 0 V de la salida. Une un terminal del secundario a los diodos D1 (hacia la salida) y D3 (desde tierra), y el otro a D2 y D4 del mismo modo. Los cátodos de D1 y D2 van a la salida; los ánodos de D3 y D4, a tierra. Para cruzar un cable sin unirlo, pasa por encima en línea recta.',
       solucion: [
         ['p', 'diodo', 8, 4, 3], ['p', 'diodo', 8, 8, 3],
         ['p', 'diodo', 10, 4, 3], ['p', 'diodo', 10, 8, 3],
@@ -860,7 +860,7 @@
       if (e.tipo === 'flotante') lista.push({ tipo: 'secundario', x: 0, y: filas[k] - 1 + DY, r: 0, k, fija: true });
       else lista.push({ tipo: 'entrada', x: 0, y: filas[k] + DY, r: 0, k, fija: true });
     });
-    if (!nv.sinSalida) lista.push({ tipo: 'salida', x: TABLERO.cols - 1, y: (nv.filaSalida || 6) + DY, r: 0, fija: true });
+    if (!nv.sinSalida) lista.push({ tipo: nv.RL > 0 ? 'salidarl' : 'salida', x: TABLERO.cols - 1, y: (nv.filaSalida || 6) + DY, r: 0, fija: true });
     return lista;
   }
 

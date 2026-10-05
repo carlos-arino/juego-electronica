@@ -197,8 +197,23 @@
           hilo('M0 22H21', 'a', id) +
           `<circle class="pz-relleno" style="stroke-width:2.2" cx="26" cy="22" r="5"/>`;
         etiquetas = `<text class="pz-txt" style="font-weight:700;font-size:12px" x="${p.x * T + 25}" y="${p.y * T + 6}">vₒ</text>`;
+        break;
+      }
+      case 'salidarl': {
+        // Cuatro casillas: conector vo, carga RL, terminal de 0 V y tierra
+        cuerpo = `<rect class="pz-fija-fondo" x="1" y="1" width="38" height="158" rx="7"/>` +
+          hilo('M0 22H23', 'a', id) + hilo('M0 100H28', 'g', id) +
+          `<path class="pz" style="stroke-width:2.5" d="M28 27V44M28 76V130"/>` +
+          `<rect class="pz-relleno" style="stroke-width:2.2" x="23" y="44" width="10" height="32" rx="1.5"/>` +
+          `<path class="pz-fino" style="stroke-width:2.6" d="M17 130H39M20.5 136.5H35.5M25 143H31"/>` +
+          `<circle class="pz-relleno" style="stroke-width:2.2" cx="28" cy="22" r="5"/>` +
+          `<circle class="pz-nudo" cx="28" cy="100" r="4.6"/>`;
+        const x0 = p.x * T, y0 = p.y * T;
+        etiquetas = `<text class="pz-txt" style="font-weight:700;font-size:12px" x="${x0 + 25}" y="${y0 + 6}">vₒ</text>` +
+          `<text class="pz-txt" style="font-weight:700;font-size:12px" x="${x0 + 11}" y="${y0 + 54}">R<tspan font-size="9" dy="3">L</tspan></text>` +
+          `<text class="pz-txt peq" x="${x0 + 12}" y="${y0 + 90}">0 V</text>`;
         if (ctx.nivel && ctx.nivel.RL > 0) {
-          etiquetas += `<text class="pz-txt peq" x="${p.x * T + 22}" y="${p.y * T + 35}">R<tspan font-size="8" dy="2">L</tspan></text>`;
+          etiquetas += `<text class="pz-txt peq" style="text-anchor:end" x="${x0 + 21}" y="${y0 + 69}">${P.formatearValor(ctx.nivel.RL, 'Ω').replace(' ', ' ')}</text>`;
         }
         break;
       }

@@ -47,7 +47,7 @@
     },
     tierra: {
       nombre: 'Tierra', w: 1, h: 1,
-      puertos: [{ x: 0, y: 0, d: 0, n: 'a' }]
+      puertos: [{ x: 0, y: 0, d: 0, n: 'a', gnd: true }]
     },
     fuente: {
       nombre: 'Fuente de tensión', w: 1, h: 1, valor: 5, unidad: 'V',
@@ -106,8 +106,14 @@
       puertos: [{ x: 0, y: 0, d: 1, n: 'a' }, { x: 0, y: 2, d: 1, n: 'b' }]
     },
     salida: {
-      nombre: 'Salida', w: 1, h: 1, fija: true,
+      nombre: 'Salida', w: 1, h: 1, fija: true, salida: true,
       puertos: [{ x: 0, y: 0, d: 3, n: 'a' }]
+    },
+    // Salida con la carga RL del nivel dibujada hasta tierra: vo, RL, un
+    // terminal de 0 V (se puede usar o dejar sin conectar) y la tierra.
+    salidarl: {
+      nombre: 'Salida con carga', w: 1, h: 4, fija: true, salida: true,
+      puertos: [{ x: 0, y: 0, d: 3, n: 'a' }, { x: 0, y: 2, d: 3, n: 'g', gnd: true, opcional: true }]
     }
   };
 
@@ -147,7 +153,7 @@
     const t = TIPOS[p.tipo];
     return t.puertos.map(q => {
       const [cx, cy] = transformarPunto(q.x + 0.5, q.y + 0.5, t.w, t.h, p.r, p.m);
-      return { cx: p.x + Math.floor(cx), cy: p.y + Math.floor(cy), d: transformarDir(q.d, p.r, p.m), n: q.n };
+      return { cx: p.x + Math.floor(cx), cy: p.y + Math.floor(cy), d: transformarDir(q.d, p.r, p.m), n: q.n, gnd: !!q.gnd, opcional: !!q.opcional };
     });
   }
 
